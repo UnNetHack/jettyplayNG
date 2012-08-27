@@ -537,12 +537,12 @@ public class SwingTerminal extends JComponent
                 if (renderHTML) {
                     try{
                     html.append(
-                            "<span style='background-color:" + colorHex(bg) +
+                            "<span style='background-color:#" + colorHex(bg) +
                             ((currAttr & VDUBuffer.BOLD) != 0 ?
                                 "; font-weight: bold" : "") +
                             ((currAttr & VDUBuffer.UNDERLINE) != 0 ?
                                 "; text-decoration: underline" : "") +
-                            "; color:" + colorHex(fg) + "'>");
+                            "; color:#" + colorHex(fg) + "'>");
                     }catch(NullPointerException ex){
                         ex.printStackTrace();
                     }
