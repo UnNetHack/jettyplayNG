@@ -49,6 +49,7 @@ import javax.swing.JComponent;
  * @version $Id: SwingTerminal.java 511 2005-11-18 19:36:06Z marcus $
  * @author  Matthias L. Jugel, Marcus Mei�ner
  */
+@SuppressWarnings("serial")
 public class SwingTerminal extends JComponent {
     /** lightweight component definitions */
     private final static long VDU_EVENTS =

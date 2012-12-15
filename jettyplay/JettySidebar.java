@@ -15,6 +15,7 @@ import java.awt.font.LineBreakMeasurer;
 import java.awt.font.TextLayout;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
+import java.lang.reflect.InvocationTargetException;
 import java.text.AttributedCharacterIterator;
 import java.text.AttributedString;
 import java.text.BreakIterator;
@@ -31,6 +32,7 @@ import javax.swing.JComponent;
  * in the Jettyplay application.
  * @author ais523
  */
+@SuppressWarnings("serial")
 public class JettySidebar extends JComponent {
     private Iterable<AttributedString> contents;
     private boolean startToEnd;
@@ -44,7 +46,7 @@ public class JettySidebar extends JComponent {
      * as a list of formatted strings.
      */
     public JettySidebar(AttributedString[] initialContents) {
-        setContents(Arrays.asList(initialContents));
+        contents = Arrays.asList(initialContents);
         startToEnd = true;
         textAntialiasingType = RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
         vertical = false;
@@ -151,7 +153,7 @@ public class JettySidebar extends JComponent {
     @Override
     public void paintComponent(Graphics g) {
         if (g instanceof Graphics2D) {
-            Map<RenderingHints.Key, Object> hints = new HashMap<RenderingHints.Key,Object>();
+            Map<RenderingHints.Key, Object> hints = new HashMap<>();
             hints.put(RenderingHints.KEY_TEXT_ANTIALIASING, textAntialiasingType);
             hints.put(RenderingHints.KEY_FRACTIONALMETRICS,
                       RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
@@ -191,8 +193,7 @@ public class JettySidebar extends JComponent {
                 LineBreakMeasurer m = new LineBreakMeasurer(asi,
                         new RawBreakIterator(),
                         getFontRenderContext());
-                List<TextLayout> layoutList =
-                        new ArrayList<TextLayout>();
+                List<TextLayout> layoutList = new ArrayList<>();
                 int wrapWidth = getWidth() - 4;
                 while (m.getPosition() < asi.getEndIndex()) {
                     layoutList.add(m.nextLayout(wrapWidth));
@@ -236,7 +237,9 @@ public class JettySidebar extends JComponent {
                  AffineTransform.class, Object.class, Object.class).
                  newInstance(null, textAntialiasingType,
                      RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
-        } catch (Exception e) {
+        } catch (NoSuchMethodException | SecurityException |
+                 InstantiationException | IllegalAccessException |
+                 IllegalArgumentException | InvocationTargetException e) {
             cachedFontRenderContext =
                 new FontRenderContext(null, textAntialiasingType !=
                     RenderingHints.VALUE_TEXT_ANTIALIAS_OFF, false);

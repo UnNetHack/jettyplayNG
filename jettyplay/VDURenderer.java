@@ -24,14 +24,25 @@ import javax.swing.UIManager;
  */
 public class VDURenderer {
     private static final int debug = 0;
+    /**
+     * Specifies that the renderer should not automatically resize.
+     */
     public static final int RESIZE_NONE = 0;
+    /**
+     * Specifies that the renderer should automatically resize the font when the
+     * terminal resizes.
+     */
     public static final int RESIZE_FONT = 1;
+    /**
+     * Specifies that the renderer should automatically resize the area of the
+     * screen it repaints in when the terminal resizes.
+     */
     public static final int RESIZE_SCREEN = 2;
-    public static final int COLOR_BOLD = 8;
-    public static final int COLOR_INVERT = 9;
-    public static final int COLOR_UNCOLORED_BOLD_REPLACEMENT = 10;
-    public static final int COLOR_FIRST_BOLD_REPLACEMENT = 11;
-    public static final int NUM_COLORS = 19;
+    private static final int COLOR_BOLD = 8;
+    private static final int COLOR_INVERT = 9;
+    private static final int COLOR_UNCOLORED_BOLD_REPLACEMENT = 10;
+    private static final int COLOR_FIRST_BOLD_REPLACEMENT = 11;
+    private static final int NUM_COLORS = 19;
     /* definitions of standards for the display unit */
     private static final int COLOR_FG_STD = 7;
     private static final int COLOR_BG_STD = 0;
@@ -109,13 +120,19 @@ public class VDURenderer {
 
     /**
      * Creates a new VDU renderer with a default font.
-     * @param buffer The VDU buffer to render with.
-     * @param g A Graphics object used to calculate sizes.
+     * @param buffer The VDU buffer to render.
+     * @param g A Graphics object used to calculate the initial size.
      */
     public VDURenderer(VDUBuffer buffer, Graphics g) {
         this(buffer, new Font(getSensibleFontName(), Font.PLAIN, 11), g);
     }
 
+    /**
+     * Creates a new VDU renderer with a specified font.
+     * @param buffer The VDU buffer to render.
+     * @param font The font to render with.
+     * @param g A Graphics object used to calculate the initial size.
+     */
     public VDURenderer(VDUBuffer buffer, Font font, Graphics g) {
         setVDUBuffer(buffer);
         // set the normal font to use
@@ -158,11 +175,11 @@ public class VDURenderer {
         return new Color(r, g, b);
     }
 
-    protected double max(double f1, double f2) {
+    private double max(double f1, double f2) {
         return (f1 < f2) ? f2 : f1;
     }
 
-    protected double min(double f1, double f2) {
+    private double min(double f1, double f2) {
         return (f1 < f2) ? f1 : f2;
     }
 
@@ -207,14 +224,6 @@ public class VDURenderer {
         return buffer;
     }
 
-    public Font getNormalFont() {
-        return normalFont;
-    }
-
-    public void setNormalFont(Font normalFont) {
-        this.normalFont = normalFont;
-    }
-    
     /**
      * Set the font to be used for rendering the characters on screen.
      * @param font the new font to be used
@@ -235,15 +244,30 @@ public class VDURenderer {
         }
     }
 
-    
+    /**
+     * Gets the font that is currently being used for rendering.
+     * @return The font object being used for rendering.
+     */
     public Font getFont() {
         return normalFont;
     }
 
+    /**
+     * Gets the antialiasing type that is currently being used for rendering.
+     * @return A value that would be suitable for use as a value corresponding
+     * to the key java.awt.ReneringHints.KEY_TEXT_ANTIALIASING when setting the
+     * rendering hints of a Graphics2D value.
+     */
     public Object getTextAntialiasingType() {
         return textAntialiasingType;
     }
 
+    /**
+     * Sets the antialiasing type to use for rendering.
+     * @param textAntialiasingType A value that would be suitable for use as a
+     * value corresponding to the key java.awt.ReneringHints.KEY_TEXT_ANTIALIASING
+     * when setting the rendering hints of a Graphics2D value.
+     */
     public void setTextAntialiasingType(Object textAntialiasingType) {
         this.textAntialiasingType = textAntialiasingType;
         update[0] = true;
@@ -261,6 +285,10 @@ public class VDURenderer {
         resizeStrategy = strategy;
     }
 
+    /**
+     * Render the current VDU buffer as HTML.
+     * @return An HTML representation of the current VDU buffer.
+     */
     public String asHTML() {
         return redraw(null, true, 0, 0);
     }
@@ -294,6 +322,20 @@ public class VDURenderer {
         return charWidth * buffer.width;
     }
 
+    /**
+     * The internal rendering function that contains code common to asHTML() and
+     * redraw().
+     * @param g The Graphics to render on. Can be null (in which case no
+     * rendering to any Graphics is done). Is ignored if renderHTML is true.
+     * @param renderHTML If true, will render to HTML rather than to a Graphics.
+     * @param drawWidth The amount of the Graphics' width to draw on.
+     * @param drawHeight The amount of the Graphics' height to draw on.
+     * @return If renderHTML is true, an HTML representation of the VDU buffer.
+     * Otherwise, an arbitrary string (which may or may not vaguely resemble
+     * HTML).
+     * @see #asHTML() 
+     * @see #redraw(java.awt.Graphics, int, int) 
+     */
     protected String redraw(Graphics g, boolean renderHTML, int drawWidth, int drawHeight) {
         if (g == null && !renderHTML) {
             return "";
@@ -571,7 +613,6 @@ public class VDURenderer {
      * Return the preferred Size of the character display.
      * This turns out to be the actual size.
      * @return Dimension dimension of the display
-     * @see #size
      */
     public Dimension getPreferredSize() {
         return getSize();

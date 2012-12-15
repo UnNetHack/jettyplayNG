@@ -25,7 +25,34 @@ import java.util.zip.GZIPInputStream;
  */
 public class TtyrecAnalyzer extends TtyrecWorker {
 
-    public enum InputFormat { BZIP2, GZIP, TTYREC, SCRIPT };
+    /**
+     * An enumeration of the possible formats a ttyrec can be in.
+     */
+    public enum InputFormat {
+        /**
+         * A ttyrec-style format, compressed with the bzip2 compression
+         * algorithm.
+         * @see BZip2InputStream
+         */
+        BZIP2,
+        /**
+         * A ttyrec-style format, compressed with the gzip compression
+         * algorithm.
+         * @see java.util.zip.GZIPInputStream
+         */
+        GZIP,
+        /**
+         * A .ttyrec (regular ttyrec) or .ttyrec2 (annotated ttyrec) format
+         * with no compression.
+         */
+        TTYREC,
+        /**
+         * The format used by the script(1) command: literal echoing of the
+         * output, with no timestamp information. (The timestamps can therefore
+         * only be determined by looking at the time the input becomes available
+         * in the file.)
+         */
+        SCRIPT };
     private final InputFormat format;
     private long byteloc;
     private InputStream outerInputStream;
@@ -54,7 +81,9 @@ public class TtyrecAnalyzer extends TtyrecWorker {
                 while (loc > bytestream.size() - 1 &&
                         !workingFor.knownLength()) {
                     try {
-                        bytestream.wait();
+                        synchronized(bytestream) {
+                            bytestream.wait();
+                        }
                     } catch (InterruptedException ex) {
                         throw new IOException("Interrupted");
                     }
@@ -76,7 +105,9 @@ public class TtyrecAnalyzer extends TtyrecWorker {
                 while (loc > bytestream.size() - 1 &&
                         !workingFor.knownLength()) {
                     try {
-                        bytestream.wait();
+                        synchronized(bytestream) {
+                            bytestream.wait();
+                        }
                     } catch (InterruptedException ex) {
                         throw new IOException("Interrupted");
                     }
@@ -107,7 +138,9 @@ public class TtyrecAnalyzer extends TtyrecWorker {
         final ByteChunkList bytestream = workingFor.getBytestream();
         if (format != InputFormat.GZIP && format != InputFormat.BZIP2) {
             while (byteloc > bytestream.size() - 1 && !workingFor.knownLength()) {
-                bytestream.wait();
+                synchronized(bytestream) {
+                    bytestream.wait();
+                }
             }
             return bytestream.get((int) byteloc++);
         } else {
@@ -195,11 +228,9 @@ public class TtyrecAnalyzer extends TtyrecWorker {
                                         // End of the file, and it's somewhere we
                                         // were expecting; loop until something
                                         // more happens.
-                                        synchronized (bytestream) {
-                                            bytestream.wait(1000);
-                                            i--;
-                                            continue;
-                                        }
+                                        bytestream.wait(1000);
+                                        i--;
+                                        continue;
                                     } else {
                                         throw ex;
                                     }
@@ -317,7 +348,7 @@ public class TtyrecAnalyzer extends TtyrecWorker {
                         rec.setInitialTimestamp(timestamp);
                         initialTimestamp = timestamp;
                     }
-                    timestamp = timestamp - initialTimestamp;
+                    timestamp -= initialTimestamp;
 
                     // Decoding as ISO-8859-1 turns bytes into codepoints literally,
                     // because it's equal to Unicode for codepoints 0-255.
@@ -386,7 +417,6 @@ public class TtyrecAnalyzer extends TtyrecWorker {
                     if ((latin1Data.contains("\u001b[?1049h") ||
                          latin1Data.contains("\u001b[?1049l")) &&
                         !rec.containsAutoResizeRangeInformation(sequenceNumber, -1)) {
-                        System.out.println("Resetting autoresize data...");
                         rec.setContainsAutoResizeRangeInformation(sequenceNumber);
                         workingFor.resetDecodeWorker();
                         workingFor.cancelLeadingEdgeDecode();
@@ -405,7 +435,6 @@ public class TtyrecAnalyzer extends TtyrecWorker {
             } catch (ArrayIndexOutOfBoundsException ex) {
                 throw new TtyrecException("Unexpected EOF");
             } catch (NullPointerException ex) {
-                ex.printStackTrace();
                 throw new TtyrecException("Input in invalid format");
             }
             rec.setLength(lastTimestamp - rec.getInitialTimestamp());
@@ -462,7 +491,12 @@ public class TtyrecAnalyzer extends TtyrecWorker {
     }
 
     @Override
+    /**
+     * Called when the analyzer is finalized.
+     * Has no normal effect, but will print a message if debugging is turned on.
+     */
     protected void finalize() throws Throwable {
+        super.finalize();
         if (workingFor.debug)
             System.out.println("Analyzer finalized! (workingFor="+
                     workingFor+workingFor.hashCode()+

@@ -15,6 +15,7 @@ import java.awt.datatransfer.Transferable;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.awt.event.ActionEvent;
@@ -43,6 +44,7 @@ import javax.swing.Timer;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
@@ -52,6 +54,7 @@ import javax.swing.UIManager;
 /**
  * The application's main frame.
  */
+@SuppressWarnings("serial")
 public class JettyFrame extends JFrame
         implements ClipboardOwner, TemporalProgress {
 
@@ -1079,7 +1082,9 @@ public class JettyFrame extends JFrame
                 if (fc == null) return;
                 iStream = new InputStreamableFileContentsWrapper(fc);
                 if (iStream == null) throw new IOException();
-            } catch (Exception ex1) {
+            } catch (ClassNotFoundException | NoSuchMethodException |
+                     SecurityException | IllegalAccessException |
+                     IllegalArgumentException | InvocationTargetException | IOException ex1) {
                 return;
             }
         }
@@ -1308,38 +1313,34 @@ public class JettyFrame extends JFrame
         // Prepare a stream for writing the image data to
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageOutputStream ios = new MemoryCacheImageOutputStream(baos);
-            String[] mimes = ImageIO.getWriterMIMETypes();
-            if (mimes.length == 0) {
-                JOptionPane.showMessageDialog(screenshotMenu,
-                        "No image encoders found", "Jettyplay",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
+            String mime;
+            try (ImageOutputStream ios = new MemoryCacheImageOutputStream(baos)) {
+                String[] mimes = ImageIO.getWriterMIMETypes();
+                if (mimes.length == 0) {
+                    JOptionPane.showMessageDialog(screenshotMenu,
+                            "No image encoders found", "Jettyplay",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                mime = mimes[0];
+                Arrays.sort(mimes);
+                if (Arrays.binarySearch(mimes, "image/png") > 0) // #NOI18N
+                    mime = "image/png";
+                ImageWriter iw = ImageIO.getImageWritersByMIMEType(mime).next();
+                iw.setOutput(ios);
+                if (antialiasingBGRMenuItem.isSelected() ||
+                    antialiasingRGBMenuItem.isSelected())
+                    replayTerminal.setTextAntialiasingType(RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                BufferedImage bi = new BufferedImage(
+                        replayTerminal.getCurrentTerminalWidth(),
+                        replayTerminal.getCurrentTerminalHeight(),
+                        BufferedImage.TYPE_INT_RGB);
+                replayTerminal.redraw(bi.createGraphics(),
+                        bi.getWidth(), bi.getHeight());
+                iw.write(bi);
+                antialiasingBGRMenuItemStateChanged(null);
+                antialiasingRGBMenuItemStateChanged(null);
             }
-            // Ideally use PNG, failing that any type
-            String mime = mimes[0];
-            Arrays.sort(mimes);
-            if (Arrays.binarySearch(mimes, "image/png") > 0) // #NOI18N
-                mime = "image/png"; // #NOI18N
-            // no reason to pick any particular writer for this format without
-            // more info, just pick the first
-            ImageWriter iw = ImageIO.getImageWritersByMIMEType(mime).next();
-            iw.setOutput(ios);
-            // remove LCD-specific antialiasing, and take a screenshot
-            if (antialiasingBGRMenuItem.isSelected() ||
-                antialiasingRGBMenuItem.isSelected())
-                replayTerminal.setTextAntialiasingType(RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            BufferedImage bi = new BufferedImage(
-                    replayTerminal.getCurrentTerminalWidth(),
-                    replayTerminal.getCurrentTerminalHeight(),
-                    BufferedImage.TYPE_INT_RGB);
-            replayTerminal.redraw(bi.createGraphics(),
-                    bi.getWidth(), bi.getHeight());
-            iw.write(bi);
-            // reset antialiasing
-            antialiasingBGRMenuItemStateChanged(null);
-            antialiasingRGBMenuItemStateChanged(null);
-            ios.close();
             final String mime_final = mime;
             final byte[] byteStream = baos.toByteArray();
             DataSource ds = new DataSource() {
@@ -1476,7 +1477,9 @@ public class JettyFrame extends JFrame
                 // cs.setContents(t);
                 getClass().getClassLoader().loadClass("javax.jnlp.ClipboardService").
                             getMethod("setContents", Transferable.class).invoke(cs, t);
-            } catch (Exception ex1) {
+            } catch (ClassNotFoundException | NoSuchMethodException |
+                     SecurityException | IllegalAccessException |
+                     IllegalArgumentException | InvocationTargetException ex1) {
                 return;
             }
         }
@@ -1989,7 +1992,8 @@ public class JettyFrame extends JFrame
     private Object safelyGetRenderingHint(String hintName) {
         try {
             return RenderingHints.class.getField(hintName).get(null);
-        } catch(Exception e) {
+        } catch(NoSuchFieldException | SecurityException |
+                IllegalArgumentException | IllegalAccessException e) {
             return RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
         }
     }
@@ -2041,7 +2045,8 @@ public class JettyFrame extends JFrame
         // Set up the GUI.
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ex) {
+        } catch (ClassNotFoundException | InstantiationException |
+                 IllegalAccessException | UnsupportedLookAndFeelException ex) {
             // if we can't set a system look and feel, just use the default...
         }
         // Set up networking, if we're allowed to.

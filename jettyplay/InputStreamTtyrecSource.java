@@ -75,7 +75,6 @@ class InputStreamTtyrecSource extends TtyrecSource {
         } catch (IOException ex) {
             // TODO: Show in the GUI
             System.out.println("Input failed: "+ex.getMessage());
-            ex.printStackTrace();
         } catch (InterruptedException ex) {
             System.out.println("Source ending via interruption...");
             return;

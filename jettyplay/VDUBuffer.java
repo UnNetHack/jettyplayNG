@@ -763,17 +763,17 @@ public class VDUBuffer implements Cloneable {
     }
 
     private static Map<Integer,char[]> charArrayShared
-            = new ConcurrentHashMap<Integer,char[]>(100000,0.5f,1);
+            = new ConcurrentHashMap<>(100000,0.5f,1);
     private static Map<Integer,short[]> charAttributesShared
-            = new ConcurrentHashMap<Integer,short[]>(100000,0.5f,1);
+            = new ConcurrentHashMap<>(100000,0.5f,1);
 
     public static void resetCaches() {
         try {
             charArrayShared.clear();
             charAttributesShared.clear();
         } catch (UnsupportedOperationException ex) {
-            charArrayShared = new ConcurrentHashMap<Integer,char[]>(100000,0.5f,1);
-            charAttributesShared = new ConcurrentHashMap<Integer,short[]>(100000,0.5f,1);
+            charArrayShared = new ConcurrentHashMap<>(100000,0.5f,1);
+            charAttributesShared = new ConcurrentHashMap<>(100000,0.5f,1);
         }
         System.runFinalization();
         System.gc();

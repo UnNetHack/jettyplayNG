@@ -44,8 +44,28 @@ public class vt320 extends VDUBuffer implements Cloneable {
   private boolean autoResize = false;
   private boolean vetoAutoResize = false;
 
-  public enum EncodingOverride { NONE, Latin1, UTF8 };
-  private EncodingOverride characterEncodingOverride;
+    /**
+     * The possible terminal encodings that can be detected from input to
+     * the terminal.
+     */
+    public enum EncodingOverride {
+        /**
+         * Specifies that no encoding information has been detected from the
+         * terminal input.
+         */
+        NONE,
+        /**
+         * Specifies that the terminal input indicates a non-Unicode character
+         * set (and Latin-1 by default).
+         */
+        Latin1,
+        /**
+         * Specifies that the terminal input indicates that it's encoded in
+         * UTF-8.
+         */
+        UTF8
+    };
+    private EncodingOverride characterEncodingOverride;
 
   /**
    * Play the beep sound ...
@@ -82,36 +102,82 @@ public class vt320 extends VDUBuffer implements Cloneable {
   }
 
     @Override
-  public void setScreenSize(int c, int r) {
-    int oldrows = getRows(), oldcols = getColumns();
-    if (oldrows == r && oldcols == c) return;
+    public void setScreenSize(int c, int r) {
+        int oldrows = getRows(), oldcols = getColumns();
+        if (oldrows == r && oldcols == c) {
+            return;
+        }
 
-    if (debugVT>2) System.err.println("setscreensize ("+c+","+r+")");
+        if (debugVT > 2) {
+            System.err.println("setscreensize (" + c + "," + r + ")");
+        }
 
-    super.setScreenSize(c,r);
+        super.setScreenSize(c, r);
 
-    /* Tricky, since the VDUBuffer works strangely. */
-    if (r > oldrows) {
-      setCursorPosition(C, R + (r-oldrows)); 
-      redraw();
+        /* Tricky, since the VDUBuffer works strangely. */
+        if (r > oldrows) {
+            setCursorPosition(C, R + (r - oldrows));
+            redraw();
+        }
     }
-  }
 
-  public boolean isAutoResize() {
-    return autoResize;
-  }
-  public void setAutoResize(boolean autoResize) {
-    if (!vetoAutoResize) this.autoResize = autoResize;
-  }
-  public boolean isVetoAutoResize() {
-    return vetoAutoResize;
-  }
-  public void setVetoAutoResize(boolean vetoAutoResize) {
-    this.vetoAutoResize = vetoAutoResize;
-  }
-  public EncodingOverride getCharacterEncodingOverride() {
-    return characterEncodingOverride;
-  }
+    /**
+     * Queries whether the input to the terminal suggests that it should be
+     * automatically resized according to cursor movements.
+     * @return True if the terminal is currently in a state where all cursor
+     * movements would be expected to be inside the terminal bounds (e.g. if
+     * the terminal seems to have been initialized by curses).
+     */
+    public boolean isAutoResize() {
+        return autoResize;
+    }
+
+    /**
+     * Tells the terminal whether to automatically resize based on cursor
+     * movements. The provided value is ignored if the input provides a
+     * sufficiently strong indication that auto-resizing should not happen
+     * (e.g. if the terminal input explicitly specified a size).
+     * @param autoResize Whether or not to resize based on cursor movements.
+     */
+    public void setAutoResize(boolean autoResize) {
+        if (!vetoAutoResize) {
+            this.autoResize = autoResize;
+        }
+    }
+
+    /**
+     * Returns whether the input provided a strong signal that automatic
+     * resizing should never be used (e.g. explicitly specifying a size).
+     * This property can also be set manually, e.g. to impose a fixed size on
+     * the terminal independent of its input.
+     * @return True if the terminal should never be auto-resized.
+     * @see #setVetoAutoResize(boolean) 
+     */
+    public boolean isVetoAutoResize() {
+        return vetoAutoResize;
+    }
+
+    /**
+     * Changes whether the terminal should consider auto-resizing.
+     * @param vetoAutoResize True if the terminal should never be auto-resized.
+     * Setting this to false does not necessarily make the terminal resize,
+     * unless autoResize is also set.
+     * @see #setAutoResize(boolean) 
+     */
+    public void setVetoAutoResize(boolean vetoAutoResize) {
+        this.vetoAutoResize = vetoAutoResize;
+    }
+
+    /**
+     * Returns information about the encoding that has been inferred from the
+     * input (and as such will override any information about the encoding that
+     * might be supplied elsewhere).
+     * @return An encoding override state. May be NONE if there is no
+     * information about encoding in the terminal input.
+     */
+    public EncodingOverride getCharacterEncodingOverride() {
+        return characterEncodingOverride;
+    }
 
   /**
    * Create a new vt320 terminal and intialize it with useful settings.
@@ -648,6 +714,12 @@ public class vt320 extends VDUBuffer implements Cloneable {
     0x00a0, // #NO-BREAK SPACE
   };
 
+  /**
+   * Translates characters from code page 850 to Unicode.
+   * @param x A character. This is interpreted as code page 850 if it's in the
+   * range 0 to 0x100, and as Unicode otherwise.
+   * @return The unicode equivalent of that character.
+   */
   public char map_cp850_unicode(char x) {
     if (x >= 0x100)
       return x;
@@ -929,7 +1001,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
           term_state = TSTATE_DATA;
           break;
         }
-        osc = osc + c;
+        osc += c;
         break;
       case TSTATE_ESCPERCENT:
         term_state = TSTATE_DATA;
@@ -1218,7 +1290,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
           term_state = TSTATE_DATA;
           break;
         }
-        dcs = dcs + c;
+        dcs += c;
         break;
 
       case TSTATE_DCEQ:
@@ -2055,7 +2127,10 @@ public class vt320 extends VDUBuffer implements Cloneable {
       setCursorPosition(C, R);
   }
 
-  /* hard reset the terminal */
+  /**
+   * Completely reset the terminal state, as if a reset sequence had
+   * been received.
+   */
   public void reset() {
     gx[0] = 'B';
     gx[1] = '0';
