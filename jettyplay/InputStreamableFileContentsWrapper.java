@@ -3,6 +3,7 @@ package jettyplay;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
 //import javax.jnlp.FileContents;
@@ -37,7 +38,9 @@ public class InputStreamableFileContentsWrapper implements InputStreamable {
         try { 
             i = (InputStream) getFileContentsClass().getMethod("getInputStream").
                 invoke(fc);
-        } catch (Exception ex) {
+        } catch (ClassNotFoundException | NoSuchMethodException |
+                 SecurityException | IllegalAccessException |
+                 IllegalArgumentException | InvocationTargetException ex) {
         }
         if (i == null) throw new FileNotFoundException();
         return i;
@@ -49,7 +52,9 @@ public class InputStreamableFileContentsWrapper implements InputStreamable {
             String n = (String) getFileContentsClass().getMethod("getName").
                 invoke(fc);
             u = new File(n).toURI();
-        } catch (Exception ex) {
+        } catch (ClassNotFoundException | NoSuchMethodException |
+                 SecurityException | IllegalAccessException |
+                 IllegalArgumentException | InvocationTargetException ex) {
         }
         if (u == null) throw new URISyntaxException("","Filename not available");
         return u;
@@ -60,7 +65,9 @@ public class InputStreamableFileContentsWrapper implements InputStreamable {
             Boolean b = (Boolean) getFileContentsClass().getMethod("canRead").
                 invoke(fc);
             return b;
-        } catch (Exception ex) {
+        } catch (ClassNotFoundException | NoSuchMethodException |
+                 SecurityException | IllegalAccessException |
+                 IllegalArgumentException | InvocationTargetException ex) {
             return false;
         }
     }
@@ -70,7 +77,9 @@ public class InputStreamableFileContentsWrapper implements InputStreamable {
             Long l = (Long) getFileContentsClass().getMethod("getLength").
                 invoke(fc);
             return l;
-        } catch (Exception ex) {
+        } catch (ClassNotFoundException | NoSuchMethodException |
+                 SecurityException | IllegalAccessException |
+                 IllegalArgumentException | InvocationTargetException ex) {
             return 0;
         }
     }
