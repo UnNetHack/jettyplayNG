@@ -360,7 +360,6 @@ public class VDUBuffer implements Cloneable {
       cbuf = charArray;
       abuf = charAttributes;
     } else {
-      try {
         if (n > (bottom - top) + 1) n = (bottom - top) + 1;
         if (bufSize < maxBufSize) {
           if (bufSize + n > maxBufSize) {
@@ -431,24 +430,6 @@ public class VDUBuffer implements Cloneable {
                            abuf, screenBase + l + 1,
                            (height - 1) - l);
         }
-      } catch (ArrayIndexOutOfBoundsException e) {
-        // this should not happen anymore, but I will leave the code
-        // here in case something happens anyway. That code above is
-        // so complex I always have a hard time understanding what
-        // I did, even though there are comments
-        System.err.println("*** Error while scrolling up:");
-        System.err.println("--- BEGIN STACK TRACE ---");
-        e.printStackTrace();
-        System.err.println("--- END STACK TRACE ---");
-        System.err.println("bufSize=" + bufSize + ", maxBufSize=" + maxBufSize);
-        System.err.println("top=" + top + ", bottom=" + bottom);
-        System.err.println("n=" + n + ", l=" + l);
-        System.err.println("screenBase=" + screenBase + ", windowBase=" + windowBase);
-        System.err.println("oldBase=" + oldBase);
-        System.err.println("size.width=" + width + ", size.height=" + height);
-        System.err.println("abuf.length=" + abuf.length + ", cbuf.length=" + cbuf.length);
-        System.err.println("*** done dumping debug information");
-      }
     }
 
     // this is a little helper to mark the scrolling

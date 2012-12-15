@@ -25,7 +25,7 @@ public class JettyAboutBox extends JDialog {
      * HTML.
      */
     public static final String copyrightInfo =
-"Copyright \u00a9 2010 Alex Smith.\n"+
+"Copyright \u00a9 2010,2012 Alex Smith.\n"+
 "Java terminal library copyright \u00a9 Matthias L. Jugel, Marcus Mei\u00dfner 1996-2005.\n"+
 "All Rights Reserved.\n"+
 "Bzip2 decompression library copyright \u00a9 2003 Rob Landley, based on code by\n"+
