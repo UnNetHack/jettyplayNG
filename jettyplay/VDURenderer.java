@@ -11,7 +11,6 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
-import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -43,7 +42,7 @@ public class VDURenderer {
      */
     private static String getSensibleFontName() {
         String[] fontNames = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
-        HashSet<String> fontNameSet = new HashSet<String>(Arrays.asList(fontNames));
+        HashSet<String> fontNameSet = new HashSet<>(Arrays.asList(fontNames));
         /* Mac OS X fixedwidth fonts */
         if (fontNameSet.contains("Menlo")) {
             return "Menlo";
@@ -308,7 +307,7 @@ public class VDURenderer {
             System.err.println("redraw()");
         }
         if (g != null && g instanceof Graphics2D) {
-            Map<RenderingHints.Key, Object> hints = new HashMap<RenderingHints.Key, Object>();
+            Map<RenderingHints.Key, Object> hints = new HashMap<>();
             hints.put(RenderingHints.KEY_TEXT_ANTIALIASING, textAntialiasingType);
             ((Graphics2D) g).addRenderingHints(hints);
         }
