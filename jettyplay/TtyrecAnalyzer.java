@@ -133,16 +133,27 @@ public class TtyrecAnalyzer extends TtyrecWorker {
     // InterruptedException's thrown if interrupted, TtyrecException
     // if we're trying to read from a compressed file and it's in the wrong
     // format, NullPointerException at EOF.
-    private byte getNextByte()
+    private void getNextNBytes(byte[] array, int offset, int length)
             throws InterruptedException, NullPointerException, TtyrecException {
         final ByteChunkList bytestream = workingFor.getBytestream();
+        long targetByteloc = byteloc + length;
+        long origByteloc = byteloc;
         if (format != InputFormat.GZIP && format != InputFormat.BZIP2) {
-            while (byteloc > bytestream.size() - 1 && !workingFor.knownLength()) {
+            while (byteloc > bytestream.size() - length && !workingFor.knownLength()) {
                 synchronized(bytestream) {
                     bytestream.wait();
                 }
             }
-            return bytestream.get((int) byteloc++);
+            while (byteloc < targetByteloc) {
+                try {
+                    byteloc += bytestream.getRestOfChunk((int)byteloc,
+                            array, (int)(offset + byteloc - origByteloc),
+                            (int)(targetByteloc - byteloc));
+                } catch(IndexOutOfBoundsException ex) {
+                    throw new NullPointerException();
+                }
+            }
+            return;
         } else {
             try {
                 if (outerInputStream == null) {
@@ -153,10 +164,14 @@ public class TtyrecAnalyzer extends TtyrecWorker {
                         outerInputStream = new BZip2InputStream(innerInputStream);
                     }
                 }
-                int i = outerInputStream.read();
-                if (i == -1) throw new NullPointerException();
-                byteloc++;
-                return (byte) i;
+                while (byteloc < targetByteloc) {
+                    int i = outerInputStream.read(array,
+                            (int)(offset + byteloc - origByteloc),
+                            (int)(targetByteloc - byteloc));
+                    if (i == -1) throw new NullPointerException();
+                    byteloc += i;
+                }
+                return;
             } catch (IOException e) {
                 if (formatDebug) System.out.println(e.getMessage());
                 if (e.getMessage().equals("Interrupted")) {
@@ -166,6 +181,13 @@ public class TtyrecAnalyzer extends TtyrecWorker {
             }
         }
     }
+
+    private byte getNextByte()
+            throws InterruptedException, NullPointerException, TtyrecException {
+        byte[] c = new byte[1];
+        getNextNBytes(c,0,1);
+        return c[0];
+    }    
     
     /**
      * The function that actually does the analysis. This uses the settings
@@ -291,9 +313,7 @@ public class TtyrecAnalyzer extends TtyrecWorker {
                         setProgress(byteloc);
                         frameData = new byte[(int) length];
                         synchronized (bytestream) {
-                            for (int i = 0; i < length; i++) {
-                                frameData[i] = getNextByte();
-                            }
+                            getNextNBytes(frameData, 0, (int) length);
                         }
                     } else {
                         // Input format /is/ SCRIPT. Extract values from the

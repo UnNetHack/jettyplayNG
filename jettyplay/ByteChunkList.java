@@ -2,6 +2,7 @@ package jettyplay;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 
 /**
@@ -16,9 +17,9 @@ public class ByteChunkList extends AbstractList<Byte> {
     ArrayList<Date> chunkTimeList;
     
     ByteChunkList() {
-        backingList = new ArrayList<Object>();
-        cumulativeSizeList = new ArrayList<Integer>();
-        chunkTimeList = new ArrayList<Date>();
+        backingList = new ArrayList<>();
+        cumulativeSizeList = new ArrayList<>();
+        chunkTimeList = new ArrayList<>();
     }
 
     private int findChunk(int index) {
@@ -62,7 +63,7 @@ public class ByteChunkList extends AbstractList<Byte> {
         if (array instanceof byte[]) {
             if (l + indexInChunk > ((byte[])array).length)
                 l = ((byte[])array).length - indexInChunk;
-            System.arraycopy(array, indexInChunk, storeIn, off, l);
+            System.arraycopy((byte[])array, indexInChunk, storeIn, off, l);
             return l;
         }
         if (array instanceof Byte[]) {
@@ -125,7 +126,7 @@ public class ByteChunkList extends AbstractList<Byte> {
      */
     @Override
     public synchronized int size() {
-        if (cumulativeSizeList.size() == 0) return 0;
+        if (cumulativeSizeList.isEmpty()) return 0;
         return cumulativeSizeList.get(cumulativeSizeList.size()-1);
     }
     /**
@@ -146,7 +147,7 @@ public class ByteChunkList extends AbstractList<Byte> {
         if (chunk > 0) indexInChunk -= cumulativeSizeList.get(chunk);
         Object array = backingList.get(chunk);
         if (array instanceof byte[]) {
-            ArrayList<Byte> al = new ArrayList<Byte>();
+            ArrayList<Byte> al = new ArrayList<>();
             for (byte b: (byte[])array) {
                 al.add(b);
             }
@@ -154,10 +155,8 @@ public class ByteChunkList extends AbstractList<Byte> {
             array = al;
         }
         if (array instanceof Byte[]) {
-            ArrayList<Byte> al = new ArrayList<Byte>();
-            for (Byte b: (Byte[])array) {
-                al.add(b);
-            }
+            ArrayList<Byte> al = new ArrayList<>();
+            al.addAll(Arrays.asList((Byte[])array));
             backingList.set(chunk, al);
             array = al;
         }
@@ -185,7 +184,7 @@ public class ByteChunkList extends AbstractList<Byte> {
         if (chunk > 0) indexInChunk -= cumulativeSizeList.get(chunk-1);
         Object array = backingList.get(chunk);
         if (array instanceof byte[]) {
-            ArrayList<Byte> al = new ArrayList<Byte>();
+            ArrayList<Byte> al = new ArrayList<>();
             for (byte b: (byte[])array) {
                 al.add(b);
             }
@@ -193,10 +192,8 @@ public class ByteChunkList extends AbstractList<Byte> {
             array = al;
         }
         if (array instanceof Byte[]) {
-            ArrayList<Byte> al = new ArrayList<Byte>();
-            for (Byte b: (Byte[])array) {
-                al.add(b);
-            }
+            ArrayList<Byte> al = new ArrayList<>();
+            al.addAll(Arrays.asList((Byte[])array));
             backingList.set(chunk, al);
             array = al;
         }

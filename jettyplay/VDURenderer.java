@@ -15,6 +15,7 @@ import java.awt.RenderingHints;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import javax.swing.UIManager;
 
@@ -47,38 +48,47 @@ public class VDURenderer {
     private static final int COLOR_FG_STD = 7;
     private static final int COLOR_BG_STD = 0;
 
+    /* So, Java responds to a request for the font family names on the system
+     * by parsing the information for every font installed on the system!
+     * I changed it to use this method instead, instantiating the fonts one
+     * at a time, but it /still/ responds by parsing the information for every
+     * font installed on the system :( Leaving it this way because it's a bit
+     * clearer, and massively inefficient no matter what I do.
+     */
+    private static boolean fontFamilyExists(String family) {
+        return (new Font(family,Font.PLAIN,1).getFamily(Locale.ROOT).equals(family));
+    }
+    
     /**
      *  Find a sensible font for displaying ttyrecs with, by looking through
      *  a list of names of monospaced fonts.
      */
     private static String getSensibleFontName() {
-        String[] fontNames = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
-        HashSet<String> fontNameSet = new HashSet<>(Arrays.asList(fontNames));
         /* Mac OS X fixedwidth fonts */
-        if (fontNameSet.contains("Menlo")) {
+        if (fontFamilyExists("Menlo")) {
             return "Menlo";
         }
-        if (fontNameSet.contains("Monaco")) {
+        if (fontFamilyExists("Monaco")) {
             return "Monaco";
         }
         /* fixedwidth fonts typically used on Linux */
-        if (fontNameSet.contains("DejaVu Sans Mono")) {
+        if (fontFamilyExists("DejaVu Sans Mono")) {
             return "DejaVu Sans Mono";
         }
-        if (fontNameSet.contains("Liberation Mono")) {
+        if (fontFamilyExists("Liberation Mono")) {
             return "Liberation Mono";
         }
-        if (fontNameSet.contains("FreeMono")) {
+        if (fontFamilyExists("FreeMono")) {
             return "FreeMono";
         }
         /* Windows/Microsoft fixedwidth fonts */
-        if (fontNameSet.contains("Inconsolata")) {
+        if (fontFamilyExists("Inconsolata")) {
             return "Inconsolata";
         }
-        if (fontNameSet.contains("Consolas")) {
+        if (fontFamilyExists("Consolas")) {
             return "Consolas";
         }
-        if (fontNameSet.contains("Courier New")) {
+        if (fontFamilyExists("Courier New")) {
             return "Courier New";
         }
         return "Monospaced";

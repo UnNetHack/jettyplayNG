@@ -795,7 +795,7 @@ public class VDUBuffer implements Cloneable {
                 String ca = new String(charArray[i]);
                 Integer cah = ca.hashCode();
                 char[] x = charArrayShared.get(cah);
-                if (x == null || !ca.contentEquals(CharBuffer.wrap(x))) {
+                if (x == null || !Arrays.equals(x, charArray[i])) {
                     /* A string we haven't seen before; record where it
                      * is for future reference. */
                     charArrayShared.put(cah, charArray[i]);
