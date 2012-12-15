@@ -98,7 +98,7 @@ public class JettyFrame extends JFrame
                     }
                 } catch (NullPointerException ex) {
                     // do nothing; source must have vanished asynchronously
-                    // wihle trying to run the command
+                    // while trying to run the command
                 }
             }
         });
@@ -944,7 +944,7 @@ public class JettyFrame extends JFrame
         InputStreamable iStream = null;
         try {
             File f = null;
-            JFileChooser fileChooser = new JFileChooser();
+            JFileChooser fileChooser = new JFileChooser(lastDirectory);
             fileChooser.setAcceptAllFileFilterUsed(false);
             fileChooser.addChoosableFileFilter(new FileFilter() {
                 /**
@@ -1060,12 +1060,13 @@ public class JettyFrame extends JFrame
                 }
             });
             fileChooser.addChoosableFileFilter(fileChooser.getAcceptAllFileFilter());
-
+            
             if (fileChooser.showOpenDialog(mainPanel) != JFileChooser.APPROVE_OPTION) {
                 return;
             }
             f = fileChooser.getSelectedFile();
             iStream = new InputStreamableFileWrapper(f);
+            lastDirectory = f.getParentFile();
         } catch (java.security.AccessControlException ex) {
             try {
                 // Try using a JNLP service to open a file. This is done using
@@ -1710,6 +1711,8 @@ public class JettyFrame extends JFrame
     private JDialog aboutBox;
     private JettyFind findBox;
 
+    private File lastDirectory = null;
+    
     public double getMaximumTime() {
         if (getCurrentTtyrec() == null) return 0.0;
         return getCurrentTtyrec().getLength();
