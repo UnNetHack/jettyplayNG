@@ -4,7 +4,7 @@
  */
 
 /*
- * JettyFont.java
+ * FontDialog.java
  *
  * Created on 01-Mar-2010, 00:16:42
  */
@@ -18,15 +18,15 @@ import javax.swing.DefaultComboBoxModel;
  *
  * @author ais523
  */
-public class JettyFont extends javax.swing.JDialog {
+public class FontDialog extends javax.swing.JDialog {
 
-    private final JettyFrame sendFontActionsTo;
+    private final MainFrame sendFontActionsTo;
 
-    /** Creates new form JettyFont
+    /** Creates new form FontDialog
      * @param parent The frame that this dialog box belongs to
      * @param sendFontActionsTo The JettyView to send font actions to
      */
-    public JettyFont(java.awt.Frame parent, JettyFrame sendFontActionsTo) {
+    public FontDialog(java.awt.Frame parent, MainFrame sendFontActionsTo) {
         super(parent, true);
         this.sendFontActionsTo = sendFontActionsTo;
         this.setTitle("Set Font");
@@ -56,7 +56,7 @@ public class JettyFont extends javax.swing.JDialog {
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        gridBagConstraints.insets = new java.awt.Insets(7, 7, 3, 7);
+        gridBagConstraints.insets = null;
         getContentPane().add(fontComboBoxLabel, gridBagConstraints);
 
         fontComboBox.setModel(new DefaultComboBoxModel(
@@ -69,7 +69,7 @@ public class JettyFont extends javax.swing.JDialog {
     gridBagConstraints.gridy = 1;
     gridBagConstraints.gridwidth = 2;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-    gridBagConstraints.insets = new java.awt.Insets(0, 7, 0, 7);
+    gridBagConstraints.insets = null;
     getContentPane().add(fontComboBox, gridBagConstraints);
 
     cancelButton.setMnemonic('c');
@@ -84,7 +84,7 @@ public class JettyFont extends javax.swing.JDialog {
     gridBagConstraints.gridy = 2;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.SOUTHEAST;
     gridBagConstraints.weightx = 1.0;
-    gridBagConstraints.insets = new java.awt.Insets(0, 7, 7, 0);
+    gridBagConstraints.insets = null;
     getContentPane().add(cancelButton, gridBagConstraints);
 
     okButton.setMnemonic('s');
@@ -98,7 +98,7 @@ public class JettyFont extends javax.swing.JDialog {
     gridBagConstraints.gridx = 1;
     gridBagConstraints.gridy = 2;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.SOUTHEAST;
-    gridBagConstraints.insets = new java.awt.Insets(0, 7, 7, 7);
+    gridBagConstraints.insets = null;
     getContentPane().add(okButton, gridBagConstraints);
 
     pack();

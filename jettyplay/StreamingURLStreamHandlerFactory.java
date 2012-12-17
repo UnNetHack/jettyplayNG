@@ -12,7 +12,7 @@ import java.net.URLStreamHandlerFactory;
  * A factory that creates the URL stream handlers used by Jettyplay.
  * @author ais523
  */
-public class JettyURLStreamHandlerFactory implements URLStreamHandlerFactory {
+public class StreamingURLStreamHandlerFactory implements URLStreamHandlerFactory {
 
     /**
      * Returns the custom URL stream handler used by Jettyplay for the given

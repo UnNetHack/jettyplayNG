@@ -16,7 +16,7 @@ import javax.swing.border.BevelBorder;
  * An overriden UI for use with the main slider in JettyPlay.
  * @author ais523
  */
-class JettySliderUI extends BasicSliderUI {
+class LoadingProgressSliderUI extends BasicSliderUI {
     private JSlider component;
     private TemporalProgress progress;
     /**
@@ -24,7 +24,7 @@ class JettySliderUI extends BasicSliderUI {
      * @param slider
      * @param progress
      */
-    public JettySliderUI(JSlider slider, TemporalProgress progress) {
+    public LoadingProgressSliderUI(JSlider slider, TemporalProgress progress) {
         super(slider);
         this.component = slider;
         this.progress = progress;

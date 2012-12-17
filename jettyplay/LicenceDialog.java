@@ -4,7 +4,7 @@
  */
 
 /*
- * JettyLicence.java
+ * LicenceDialog.java
  *
  * Created on 06-Feb-2010, 18:26:47
  */
@@ -20,12 +20,12 @@ import java.io.InputStreamReader;
  *
  * @author ais523
  */
-public class JettyLicence extends javax.swing.JDialog {
+public class LicenceDialog extends javax.swing.JDialog {
 
-    /** Creates new form JettyLicence
+    /** Creates new form LicenceDialog
      * @param parent The parent of the dialog box to create.
      */
-    public JettyLicence(java.awt.Frame parent) {
+    public LicenceDialog(java.awt.Frame parent) {
         super(parent, true);
         initComponents();
         getRootPane().setDefaultButton(closeButton);
@@ -92,7 +92,7 @@ public class JettyLicence extends javax.swing.JDialog {
     private String getLicenceText() {
         String fname = "jettyplay/resources/COPYING.txt";
         try {
-            InputStream i = JettyLicence.class.getClassLoader().getResource(fname).openStream();
+            InputStream i = LicenceDialog.class.getClassLoader().getResource(fname).openStream();
             BufferedReader b = new BufferedReader(new InputStreamReader(i));
             StringBuilder s = new StringBuilder();
             for (String t = b.readLine(); t != null; t = b.readLine()) {

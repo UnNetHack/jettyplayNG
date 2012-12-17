@@ -33,7 +33,7 @@ import javax.swing.JComponent;
  * @author ais523
  */
 @SuppressWarnings("serial")
-public class JettySidebar extends JComponent {
+public class SidebarPanel extends JComponent {
     private Iterable<AttributedString> contents;
     private boolean startToEnd;
     private boolean vertical;
@@ -45,7 +45,7 @@ public class JettySidebar extends JComponent {
      * @param initialContents The information to show as the sidebar is created,
      * as a list of formatted strings.
      */
-    public JettySidebar(AttributedString[] initialContents) {
+    public SidebarPanel(AttributedString[] initialContents) {
         contents = Arrays.asList(initialContents);
         startToEnd = true;
         textAntialiasingType = RenderingHints.VALUE_TEXT_ANTIALIAS_ON;

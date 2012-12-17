@@ -146,7 +146,8 @@ public class UIBuilder {
         rv.setText(text);
         if (accelerator != null)
             rv.setAccelerator(KeyStroke.getKeyStroke(accelerator));
-        rv.addChangeListener(listener);
+        if (listener != null)
+            rv.addChangeListener(listener);
         connectComponents(rv, parent, null);
         if (enablable)
             enablableComponents.add(rv);

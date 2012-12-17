@@ -1,5 +1,5 @@
 /*
- * JettyAboutBox.java
+ * AboutDialog.java
  */
 
 package jettyplay;
@@ -11,7 +11,8 @@ import javax.swing.SwingUtilities;
  * A dialog box that shows the copyright information for Jettyplay.
  * @author ais523
  */
-public class JettyAboutBox extends JDialog {
+@SuppressWarnings("serial")
+public class AboutDialog extends JDialog {
 
     /**
      * The current Jettyplay version number, a public static constant; other
@@ -38,7 +39,7 @@ public class JettyAboutBox extends JDialog {
      * Creates a new dialog box for showing Jettyplay copyright information.
      * @param parent The parent window of the dialog box.
      */
-    public JettyAboutBox(java.awt.Frame parent) {
+    public AboutDialog(java.awt.Frame parent) {
         super(parent);
         this.parent = parent;
         initComponents();
@@ -80,7 +81,7 @@ public class JettyAboutBox extends JDialog {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.insets = new java.awt.Insets(7, 7, 12, 8);
+        gridBagConstraints.insets = null;
         getContentPane().add(appTitleLabel, gridBagConstraints);
 
         appDescLabel.setFont(appDescLabel.getFont());
@@ -91,7 +92,7 @@ public class JettyAboutBox extends JDialog {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 1;
         gridBagConstraints.gridwidth = java.awt.GridBagConstraints.RELATIVE;
-        gridBagConstraints.insets = new java.awt.Insets(0, 7, 12, 7);
+        gridBagConstraints.insets = null;
         getContentPane().add(appDescLabel, gridBagConstraints);
 
         appDescLabel1.setFont(appDescLabel1.getFont());
@@ -102,7 +103,7 @@ public class JettyAboutBox extends JDialog {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 3;
         gridBagConstraints.gridwidth = java.awt.GridBagConstraints.RELATIVE;
-        gridBagConstraints.insets = new java.awt.Insets(0, 8, 0, 7);
+        gridBagConstraints.insets = null;
         getContentPane().add(appDescLabel1, gridBagConstraints);
 
         jPanel1.setName("jPanel1"); // NOI18N
@@ -130,7 +131,7 @@ public class JettyAboutBox extends JDialog {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 2;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.insets = new java.awt.Insets(0, 7, 12, 7);
+        gridBagConstraints.insets = null;
         getContentPane().add(jPanel1, gridBagConstraints);
 
         jPanel2.setName("jPanel2"); // NOI18N
@@ -172,7 +173,7 @@ public class JettyAboutBox extends JDialog {
                 thisDialog.dispose();
             }
         });
-        new JettyLicence(parent).setVisible(true);
+        new LicenceDialog(parent).setVisible(true);
     }//GEN-LAST:event_licenceButtonActionPerformed
 
     private void closeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeButtonActionPerformed
