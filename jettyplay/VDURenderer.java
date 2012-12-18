@@ -10,11 +10,8 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import javax.swing.UIManager;
@@ -606,6 +603,7 @@ public class VDURenderer {
                 charWidth = fm.charWidth('@');
                 charHeight = fm.getHeight();
                 charDescent = fm.getDescent();
+                break;
             case RESIZE_NONE:
             default:
                 break;
@@ -647,5 +645,21 @@ public class VDURenderer {
 
     private String colorHex(Color fg) {
         return hex2(fg.getRed()) + hex2(fg.getGreen()) + hex2(fg.getBlue());
+    }
+
+    /**
+     * Gets the current height of one character.
+     * @return The height, in pixels.
+     */
+    public int getCharHeight() {
+        return charHeight;
+    }
+
+    /**
+     * Gets the current width of one character.
+     * @return The width, in pixels.
+     */
+    public int getCharWidth() {
+        return charWidth;
     }
 }

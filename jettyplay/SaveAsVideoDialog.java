@@ -249,7 +249,11 @@ public class SaveAsVideoDialog extends JDialog implements ProgressListener {
         antialiasingCheckBox.setEnabled(false);
         okButton.setEnabled(false);
         progressBar.setEnabled(true);
-        final VideoCodec[] codecs = {null,
+        final VideoCodec[] codecs = {
+            new ZMBVVideoCodec(height, parent.getTerminalFont(),
+                    antialiasingCheckBox.isSelected() ?
+                RenderingHints.VALUE_TEXT_ANTIALIAS_ON :
+                RenderingHints.VALUE_TEXT_ANTIALIAS_OFF),
             new RawVideoCodec(height, parent.getTerminalFont(),
                     antialiasingCheckBox.isSelected() ?
                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON :
@@ -333,11 +337,12 @@ public class SaveAsVideoDialog extends JDialog implements ProgressListener {
                                     "Could not save file:" + ex.getLocalizedMessage(),
                                     "Save as Video", JOptionPane.ERROR_MESSAGE);
                         }
-                        finalThis.dispose();
                     }
+                    finalThis.dispose();
                 } catch (CancellationException e) {
-                    System.err.println("Cancelled!");
-                    return;
+                    // nothing to do
+                } finally {
+                    encodingContainer = null; // make sure it doesn't leak
                 }
             }
         };
@@ -365,6 +370,9 @@ public class SaveAsVideoDialog extends JDialog implements ProgressListener {
         Runnable runnable = new Runnable() {
             public void run() {
                 progressBar.setValue(encodingContainer.getFramesEncoded());
+                progressBar.setString(encodingContainer.getFramesEncoded() +
+                        " / " + progressBar.getMaximum());
+                progressBar.setStringPainted(true);
             }
         };
         SwingUtilities.invokeLater(runnable);

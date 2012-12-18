@@ -469,8 +469,7 @@ public class Ttyrec {
      * @param container The container to use for the video format.
      * @param codec The codec to use to encode the individual frames.
      * @param timer An object that calculates the timings to use in the video.
-     * @see VideoContainer#encodeVideo(jettyplay.VideoCodec, java.util.Iterator,
-     * int, java.awt.Font, jettyplay.FrameTimeConvertor, java.lang.Object)
+     * @see VideoContainer#encodeVideo(jettyplay.VideoCodec, java.util.Iterator, jettyplay.FrameTimeConvertor) 
      */
     public void encodeVideo(VideoContainer container, VideoCodec codec,
             FrameTimeConvertor timer) {

@@ -96,7 +96,8 @@ public class AVIVideoContainer extends FixedFramerateVideoContainer {
         header.appendWord((short)1); /* biPlanes; "always 1" according to docs */
         header.appendWord((short)codec.getColorDepth()); /* biBitCount */
         header.appendFourcc(codec.getFourCC()); /* biCompression, seems to use a fourcc */
-        header.appendDword(codec.getActualMaxFrameSize()); /* biSizeImage */
+        header.appendDword(codec.getActualWidth() * codec.getActualHeight() *
+                codec.getColorDepth() / 8); /* biSizeImage: uncompressed size */
         header.appendDword(0); /* biXPelsPerMeter */
         header.appendDword(0); /* biYPelsPerMeter */
         header.appendDword(0); /* biClrUsed */
