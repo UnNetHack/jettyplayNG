@@ -5,8 +5,10 @@
 
 package jettyplay;
 
+import java.awt.Font;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.HashSet;
@@ -77,31 +79,28 @@ public class Ttyrec {
      * yet.
      */
     public Ttyrec() {
-        frames = new ArrayList<TtyrecFrame>();
+        frames = new ArrayList<>();
         initialTimestamp = 0;
         length = 0;
         lengthOffset = 0;
         isStreaming = false;
         // We don't know which formats the data could be in yet.
-        encodings = new HashSet<Encoding>();
-        encodings.add(Encoding.UTF8);
-        encodings.add(Encoding.IBM);
-        encodings.add(Encoding.Latin1);
+        encodings = EnumSet.of(Encoding.UTF8,Encoding.IBM,Encoding.Latin1);
         // It's easier to detect that a ttyrec isn't multistream, than that
         // it is. So set to multistream initially, and let the analyzer
         // disillusion us.
         fileType = FileType.MultistreamTtyrec;
         // This set contains all the analyzer sequence numbers for which
         // the file contains auto-resize range information.
-        containsAutoResizeRangeInformation = new HashSet<Integer>();
+        containsAutoResizeRangeInformation = new HashSet<>();
         // ... and this set contains all the decoder sequence numbers for which
         // we should act as if there's info, because the decoding goes mad if
         // we don't.
-        overrideAutoResizeRangeInformation = new HashSet<Integer>();
+        overrideAutoResizeRangeInformation = new HashSet<>();
         // This set contains strings used in the frames, in the hope of
         // saving memory because strings are likely to be used more than
         // once.
-        bytesRegistry = new HashMap<Integer,byte[]>();
+        bytesRegistry = new HashMap<>();
     }
 
     /**
@@ -126,7 +125,7 @@ public class Ttyrec {
      * far for this ttyrec.
      */
     public void resetEncodings() {
-        encodings = new HashSet<Encoding>();
+        encodings = new HashSet<>();
         encodings.add(Encoding.UTF8);
         encodings.add(Encoding.IBM);
         encodings.add(Encoding.Latin1);
@@ -373,7 +372,7 @@ public class Ttyrec {
      * the course of the ttyrec, the value at the start is used.
      */
     public int getColumns() {
-        if (frames.size() == 0 || frames.get(0).getTerminalState() == null)
+        if (frames.isEmpty() || frames.get(0).getTerminalState() == null)
             return 80;
         return frames.get(0).getTerminalState().getColumns();
     }
@@ -384,7 +383,7 @@ public class Ttyrec {
      * the ttyrec, the value at the start is used.
      */
     public int getRows() {
-        if (frames.size() == 0 || frames.get(0).getTerminalState() == null)
+        if (frames.isEmpty() || frames.get(0).getTerminalState() == null)
             return 24;
         return frames.get(0).getTerminalState().getRows();
     }
@@ -463,5 +462,18 @@ public class Ttyrec {
      */
     public void setWantedFrame(int wantedFrame) {
         this.wantedFrame = wantedFrame;
+    }
+    
+    /**
+     * Encodes this ttyrec into a video.
+     * @param container The container to use for the video format.
+     * @param codec The codec to use to encode the individual frames.
+     * @param timer An object that calculates the timings to use in the video.
+     * @see VideoContainer#encodeVideo(jettyplay.VideoCodec, java.util.Iterator,
+     * int, java.awt.Font, jettyplay.FrameTimeConvertor, java.lang.Object)
+     */
+    public void encodeVideo(VideoContainer container, VideoCodec codec,
+            FrameTimeConvertor timer) {
+        container.encodeVideo(codec, frames.iterator(), timer);
     }
 }

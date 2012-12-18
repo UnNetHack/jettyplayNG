@@ -67,7 +67,7 @@ class InputStreamTtyrecSource extends TtyrecSource {
                 if (reachedEOF && iStream.couldBeStreamable())
                     getTtyrec().setIsStreaming(true);
                 b = Arrays.copyOf(b, bytesRead-obr);
-                bytestream.appendArray(b, bytesRead-obr);
+                bytestream.appendArray(b);
                 synchronized(bytestream) {
                     bytestream.notifyAll();
                 }

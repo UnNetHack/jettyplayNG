@@ -356,6 +356,14 @@ public class MainFrame extends JFrame
                 openURLMenuItemActionPerformed(evt);
             }
         });
+        uiBuilder.addJSeparator(fileMenu);
+        uiBuilder.addJMenuItem(fileMenu, 'v', "Save as Video...", null,
+                true, new ActionListener() {
+            public void actionPerformed(ActionEvent evt) {
+                saveAsVideoMenuItemActionPerformed(evt);
+            }
+        });
+        uiBuilder.addJSeparator(fileMenu);
         uiBuilder.addJMenuItem(fileMenu, 'x', "Exit", "control X", false,
                 new ActionListener() {
             public void actionPerformed(ActionEvent evt) {
@@ -1113,6 +1121,20 @@ public class MainFrame extends JFrame
         }
     }
 
+    private void saveAsVideoMenuItemActionPerformed(ActionEvent evt) {
+        /* We don't check to see if analyze process is maxed out, because in
+         * the case of streaming ttyrecs, there's no way to tell.
+         */
+        if (currentSource.getTtyrec() != null &&
+            currentSource.getTtyrec().getFrameCount() > 0 &&
+            currentSource.decodeProgress() == currentSource.getTtyrec().getFrameCount())
+            new SaveAsVideoDialog(this, currentSource.getTtyrec()).setVisible(true);
+        else
+            JOptionPane.showMessageDialog(fileMenu,
+                    "Please wait for the ttyrec to finish loading first.",
+                    "Cannot Save as Video", JOptionPane.ERROR_MESSAGE);
+    }
+    
     private void setFontMenuItemActionPerformed(ActionEvent evt) {
         FontDialog fontBox = new FontDialog(this,this);
         fontBox.setVisible(true);
@@ -1568,7 +1590,7 @@ public class MainFrame extends JFrame
         sidebarUpdates++;
         if (sidebarUpdates >= 100000) {
             sidebarUpdates = 0;
-            System.gc();
+            //System.gc();
         }
         // TODO: Fix magic numbers.
         // 0 = properties; 1 = annotations; 2 = playlist; 3 = raw data

@@ -39,6 +39,12 @@ public class VDURenderer {
      * screen it repaints in when the terminal resizes.
      */
     public static final int RESIZE_SCREEN = 2;
+    /**
+     * Specifies that the renderer should automatically resize the font to fit
+     * the height of the terminal, then resize the width of the terminal to fit
+     * the font.
+     */
+    public static final int RESIZE_WIDTH = 3;
     private static final int COLOR_BOLD = 8;
     private static final int COLOR_INVERT = 9;
     private static final int COLOR_UNCOLORED_BOLD_REPLACEMENT = 10;
@@ -290,6 +296,7 @@ public class VDURenderer {
      * @see #RESIZE_NONE
      * @see #RESIZE_FONT
      * @see #RESIZE_SCREEN
+     * @see #RESIZE_WIDTH
      */
     public void setResizeStrategy(int strategy) {
         resizeStrategy = strategy;
@@ -570,20 +577,23 @@ public class VDURenderer {
                 buffer.setScreenSize(w / charWidth, buffer.height = h / charHeight);
                 break;
             case RESIZE_FONT:
+            case RESIZE_WIDTH:
                 int height = h / buffer.height;
                 int width = w / buffer.width;
                 fm = g.getFontMetrics(normalFont = new Font(fontName, fontStyle, charHeight));
                 // adapt current font size (from small up to best fit)
-                if (fm.getHeight() < height || fm.charWidth('@') < width) {
+                if (fm.getHeight() < height && (fm.charWidth('@') < width && resizeStrategy == RESIZE_FONT)) {
                     do {
                         fm = g.getFontMetrics(normalFont = new Font(fontName, fontStyle, ++charHeight));
-                    } while (fm.getHeight() < height || fm.charWidth('@') < width);
+                    } while (fm.getHeight() < height &&
+                             (fm.charWidth('@') < width && resizeStrategy == RESIZE_FONT));
                 }
                 // now check if we got a font that is too large
-                if (fm.getHeight() > height || fm.charWidth('@') > width) {
+                if (fm.getHeight() > height || (fm.charWidth('@') > width && resizeStrategy == RESIZE_FONT)) {
                     do {
                         fm = g.getFontMetrics(normalFont = new Font(fontName, fontStyle, --charHeight));
-                    } while (charHeight > 1 && (fm.getHeight() > height || fm.charWidth('@') > width));
+                    } while (charHeight > 1 && (fm.getHeight() > height ||
+                             (fm.charWidth('@') > width && resizeStrategy == RESIZE_FONT)));
                 }
                 if (charHeight <= 1) {
                     System.err.println("VDU: error during resize, resetting");
@@ -596,7 +606,6 @@ public class VDURenderer {
                 charWidth = fm.charWidth('@');
                 charHeight = fm.getHeight();
                 charDescent = fm.getDescent();
-                break;
             case RESIZE_NONE:
             default:
                 break;

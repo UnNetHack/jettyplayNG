@@ -16,7 +16,10 @@ public class ByteChunkList extends AbstractList<Byte> {
     ArrayList<Integer> cumulativeSizeList;
     ArrayList<Date> chunkTimeList;
     
-    ByteChunkList() {
+    /**
+     * Creates a new empty ByteChunkList.
+     */
+    public ByteChunkList() {
         backingList = new ArrayList<>();
         cumulativeSizeList = new ArrayList<>();
         chunkTimeList = new ArrayList<>();
@@ -84,6 +87,28 @@ public class ByteChunkList extends AbstractList<Byte> {
         throw new IndexOutOfBoundsException("Could not find which part of the list to index");
     }
 
+    /**
+     * Adds all the elements in another ByteChunkList to the end of this
+     * ByteChunkList. The two lists will share internal storage in the
+     * overlapping parts; as such, the added list should not be changed
+     * after it has been added (including indirectly by changing a wrapped
+     * array).
+     * @param b The ByteChunkList to append to this ByteChunkList.
+     */
+    @SuppressWarnings("unchecked")
+    public synchronized void appendByteChunkList(ByteChunkList b) {
+        for (Object o : b.backingList) {
+            if (o instanceof byte[] || o instanceof Byte[]) {
+                appendArray(o);
+            } else { /* must be an ArrayList of Bytes */
+                ArrayList<Byte> oab = (ArrayList<Byte>) o;
+                cumulativeSizeList.add(size() + oab.size());
+                backingList.add(oab);
+                chunkTimeList.add(new Date());
+            }
+        }
+    }
+    
     /**
      * Returns the byte from this list at the given index.
      * @param index The index to return the byte from.
@@ -220,9 +245,10 @@ public class ByteChunkList extends AbstractList<Byte> {
     }
 
     /**
-     * Appends an array of bytes to the end of this list. The array is
-     * wrapped by this list, rather than copied, and so should not be
-     * changed after being added to the list.
+     * Appends an array of bytes to the end of this list. The array is wrapped
+     * by this list, rather than copied; as such, changing it after it has been
+     * added might change the list. (It is guaranteed to, unless there has been
+     * a nearby insertion or deletion.)
      * @param array Either a byte[] or a Byte[] to append.
      */
     public synchronized void appendArray(Object array) {
@@ -232,25 +258,6 @@ public class ByteChunkList extends AbstractList<Byte> {
         if (s == 0) return;
         if (s > -1) {
             cumulativeSizeList.add(size()+s);
-            backingList.add(array);
-            chunkTimeList.add(new Date());
-        } else
-            throw new ClassCastException("Argument is not a byte array");
-    }
-    /**
-     * Appends the first count bytes of an array of bytes to the end of
-     * this list. The array is wrapped by this list, rather than copied,
-     * and so should not be changed after being added to the list.
-     * @param array Either a byte[] or a Byte[] to append.
-     * @param count The number of bytes to add.
-     */
-    public synchronized void appendArray(Object array, int count) {
-        int s = -1;
-        if (array instanceof byte[]) s = ((byte[])array).length;
-        if (array instanceof Byte[]) s = ((Byte[])array).length;
-        if (s == 0) return;
-        if (s > -1) {
-            cumulativeSizeList.add(size() + count);
             backingList.add(array);
             chunkTimeList.add(new Date());
         } else
