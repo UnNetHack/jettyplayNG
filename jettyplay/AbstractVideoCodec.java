@@ -59,7 +59,7 @@ public abstract class AbstractVideoCodec extends VideoCodec {
     public byte[] encodeKeyframe(TtyrecFrame frame) {
         /* Make sure the renderer is looking at the appropriate frame, and
          * make sure that the renderer and image exist. */
-        int size = getMaxFrameSize(frame);
+        int size = getUncompressedFrameSize(frame);
         renderer.redraw(graphics, imageWidth, imageHeight);
         return Arrays.copyOf(dataBuffer.getData(), size);
     }
@@ -90,6 +90,10 @@ public abstract class AbstractVideoCodec extends VideoCodec {
      */
     @Override
     public int getMaxFrameSize(TtyrecFrame frame) {
+        return getUncompressedFrameSize(frame);
+    }
+    
+    private int getUncompressedFrameSize(TtyrecFrame frame) {
         /* Chicken and egg problem here. The size of the renderer depends
          * on the sort of image it's drawing on, but the size of the image
          * depends on the size of the renderer. So we temporarily create

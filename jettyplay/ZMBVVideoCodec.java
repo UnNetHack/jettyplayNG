@@ -49,11 +49,16 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
         return false;
     }
 
-    @Override
-    public byte[] encodeKeyframe(TtyrecFrame frame) {
-        byte[] uncompressedData = super.encodeKeyframe(frame);
-        deflater.reset();
-        deflater.setInput(uncompressedData);
+    /**
+     * Compresses using zlib and sync-flushes the given input.
+     * @param input The input to compress.
+     * @param headerSize The number of bytes padding to put before the
+     * compressed data.
+     * @return An array with {@code headerSize} bytes of padding, followed
+     * by the compression of {@code input}.
+     */
+    private byte[] deflationOf(byte[] input, int headerSize) {
+        deflater.setInput(input);
         byte[] compressedOutput = new byte[1024];
         int coPos = 0;
         do {
@@ -62,8 +67,17 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
             coPos += deflater.deflate(compressedOutput, coPos,
                     compressedOutput.length - coPos, Deflater.SYNC_FLUSH);
         } while (coPos == compressedOutput.length);
+        byte[] deflation = new byte[coPos + headerSize];
+        System.arraycopy(compressedOutput, 0, deflation, headerSize, coPos);
+        return deflation;
+    }
+    
+    @Override
+    public byte[] encodeKeyframe(TtyrecFrame frame) {
+        byte[] uncompressedData = super.encodeKeyframe(frame);
+        deflater.reset();
         /* Keyframe header: 01 00 01 01 08 blockwidth blockheight */
-        byte[] encodedData = new byte[7 + coPos];
+        byte[] encodedData = deflationOf(uncompressedData, 7);
         encodedData[0] = (byte)0x1;
         encodedData[1] = (byte)0x0;
         encodedData[2] = (byte)0x1;
@@ -71,11 +85,41 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
         encodedData[4] = (byte)0x8;
         encodedData[5] = (byte)getRenderer().getCharWidth();
         encodedData[6] = (byte)getRenderer().getCharHeight();
-        System.arraycopy(compressedOutput, 0, encodedData, 7, coPos);
-        if (coPos + 7 > largestFrameSize) largestFrameSize = coPos + 7;
+        if (encodedData.length > largestFrameSize)
+            largestFrameSize = encodedData.length;
         return encodedData;
     }
 
+    /**
+     * Encodes a frame that's a repeat of the previous one.
+     * 
+     * Due to the details of the ZMBV codec, there isn't actually a need to
+     * look at the previous data; we can just encode a frame of "no motion",
+     * that's a non-keyframe that's all 0s (and thus compresses very well).
+     * 
+     * @param frame The frame that was repeated. Only examined to check its
+     * size.
+     * @param prevEncoding The previous encoding of the frame; ignored.
+     * @return The encoding of a no-motion frame.
+     */
+    @Override
+    public byte[] encodeRepeatFrame(TtyrecFrame frame, byte[] prevEncoding) {
+        /* 2 bytes per block */
+        int len = (frame.getTerminalState().getColumns() *
+                frame.getTerminalState().getRows() * 2);
+        if (len % 4 == 2)
+            len += 2; /* 2 bytes of padding if there are an odd number of blocks */
+        byte[] uncompressedMotionVectors = new byte[len];
+        for (int i = 0; i < len; i++) {
+            uncompressedMotionVectors[i] = 0;
+        }
+        byte[] encodedData = deflationOf(uncompressedMotionVectors, 1);
+        encodedData[0] = (byte)0;
+        if (encodedData.length > largestFrameSize)
+            largestFrameSize = encodedData.length;
+        return encodedData;
+    }
+    
     @Override
     public int getActualMaxFrameSize() {
         return largestFrameSize;
@@ -88,7 +132,7 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
 
     @Override
     public boolean repeatedFramesAreKeyframes() {
-        return true; // TODO make this false
+        return false;
     }
 
     @Override
