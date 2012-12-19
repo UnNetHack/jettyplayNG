@@ -6,7 +6,11 @@ package jettyplay;
 
 import java.awt.Font;
 import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
+import java.awt.Transparency;
+import java.awt.color.ColorSpace;
+import java.awt.image.ColorModel;
+import java.awt.image.ComponentColorModel;
+import java.awt.image.DataBuffer;
 
 /**
  * A codec for uncompressed encoding of video in the bgr24 color space.
@@ -61,11 +65,6 @@ class RawVideoCodec extends AbstractVideoCodec {
     }
 
     @Override
-    protected int getBufferedImageType() {
-        return BufferedImage.TYPE_3BYTE_BGR;
-    }
-
-    @Override
     public int getActualMaxFrameSize() {
         return getActualWidth() * getActualHeight() * 3;
     }
@@ -78,5 +77,20 @@ class RawVideoCodec extends AbstractVideoCodec {
     @Override
     public boolean repeatedFramesAreKeyframes() {
         return true;
+    }
+
+    @Override
+    protected int[] getPixelOrder() {
+        int[] pixelOrder = {2, 1, 0}; /* BGRX */
+        return pixelOrder;
+    }
+
+    @Override
+    protected ColorModel getColorModel() {
+        int[] colorWidths = {8, 8, 8}; /* 24-bit color */
+        return new ComponentColorModel(
+                ColorSpace.getInstance(ColorSpace.CS_sRGB),
+                colorWidths, false, false, Transparency.OPAQUE,
+                DataBuffer.TYPE_BYTE);
     }
 }
