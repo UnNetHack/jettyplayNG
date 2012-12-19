@@ -107,9 +107,10 @@ public abstract class FixedFramerateVideoContainer implements VideoContainer {
                  * fixed framerate, we may have to repeat frames. Alternatively,
                  * if frames come too fast, we skip some (the while loop isn't
                  * entered at all). */
-                if (!repeat && lastKeyframe + KEYFRAME_INTERVAL < encodeFrames)
+                if (!repeat && lastKeyframe + KEYFRAME_INTERVAL < encodeFrames) {
                     encodeKeyframe(frame);
-                else if (!repeat)
+                    lastKeyframe = encodeFrames;
+                } else if (!repeat)
                     encodeNonKeyframe(frame, prevFrame);
                 else
                     encodeRepeatedFrame(frame);

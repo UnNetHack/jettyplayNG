@@ -23,6 +23,9 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
 
     Deflater deflater;
     int largestFrameSize = 0;
+    int blockWidth = -1;
+    int blockHeight = -1;
+    byte[] prevUncompressedData;
     
     public ZMBVVideoCodec(int height, Font terminalFont, Object object) {
         super(height, terminalFont, object);
@@ -75,6 +78,7 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
     @Override
     public byte[] encodeKeyframe(TtyrecFrame frame) {
         byte[] uncompressedData = super.encodeKeyframe(frame);
+        prevUncompressedData = uncompressedData;
         deflater.reset();
         /* Keyframe header: 01 00 01 01 08 blockwidth blockheight */
         byte[] encodedData = deflationOf(uncompressedData, 7);
@@ -83,8 +87,12 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
         encodedData[2] = (byte)0x1;
         encodedData[3] = (byte)0x1;
         encodedData[4] = (byte)0x8;
-        encodedData[5] = (byte)getRenderer().getCharWidth();
-        encodedData[6] = (byte)getRenderer().getCharHeight();
+        int bW = getRenderer().getCharWidth();
+        if (bW % super.getActualWidth() != 0) blockWidth = bW;
+        int bH = getRenderer().getCharHeight();
+        if (bH % super.getActualHeight() != 0) blockHeight = bH;
+        encodedData[5] = (byte)blockWidth;
+        encodedData[6] = (byte)blockHeight;
         if (encodedData.length > largestFrameSize)
             largestFrameSize = encodedData.length;
         return encodedData;
@@ -105,8 +113,8 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
     @Override
     public byte[] encodeRepeatFrame(TtyrecFrame frame, byte[] prevEncoding) {
         /* 2 bytes per block */
-        int len = (frame.getTerminalState().getColumns() *
-                frame.getTerminalState().getRows() * 2);
+        int len = (getActualWidth() * getActualHeight() /
+                blockWidth / blockHeight * 2);
         if (len % 4 == 2)
             len += 2; /* 2 bytes of padding if there are an odd number of blocks */
         byte[] uncompressedMotionVectors = new byte[len];
@@ -119,7 +127,90 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
             largestFrameSize = encodedData.length;
         return encodedData;
     }
-    
+
+    /**
+     * Encodes a frame relative to a previous frame.
+     * 
+     * This is mostly done via encoding the XOR of this frame with the
+     * previous frame. We rely on the fact that frames are always encoded in
+     * order (it can skip or repeat frames, but not do them out of order),
+     * meaning that we know the block size, and we have a copy of the previous
+     * uncompressed data available.
+     * 
+     * @param frame The frame to encode.
+     * @param prevFrame The frame to encode relative to. This is ignored;
+     * rather we use the most recent frame to be encoded.
+     * @return The encoded data.
+     */
+    @Override
+    public byte[] encodeNonKeyframe(TtyrecFrame frame, TtyrecFrame prevFrame) {
+        byte[] uncompressedData = super.encodeKeyframe(frame);
+        byte[] residual = new byte[uncompressedData.length];
+        int residualPos = 0;
+        int residualCount = 0;
+        final int w = getActualWidth();
+        final int h = getActualHeight();
+        int len = (w / blockWidth * h / blockHeight * 2);
+        if (len % 4 == 2)
+            len += 2; /* 2 bytes of padding if there are an odd number of blocks */
+        byte[] motionVectors = new byte[len];
+        int motionPos = 0;
+        for (int y = 0; y < h / blockHeight; y++) {
+            for (int x = 0; x < w / blockWidth; x++) {
+                // TODO: better estimation
+                byte motionX = 0;
+                byte motionY = 0;
+                int motion = ((int)motionX * 4) + ((int)motionY * w * 4);
+                // The ZMBV format allows specifying motion relative to
+                // outside the frame. This algorithm doesn't, though.
+                boolean hasResidual = false;
+                for (int j = y * blockHeight * w * 4;
+                        j < (y + 1) * blockHeight * w * 4; j+= w * 4) {
+                    for (int k = x * 4 * blockWidth + j;
+                            k < (x + 1) * (blockWidth * 4) + j; k += 4) {
+                        if ((residual[residualPos++] =
+                                (byte) (uncompressedData[k]
+                                ^ prevUncompressedData[k + motion])) != 0) {
+                            hasResidual = true;
+                        }
+                        if ((residual[residualPos++] =
+                                (byte) (uncompressedData[k + 1]
+                                ^ prevUncompressedData[k + 1 + motion])) != 0) {
+                            hasResidual = true;
+                        }
+                        if ((residual[residualPos++] =
+                                (byte) (uncompressedData[k + 2]
+                                ^ prevUncompressedData[k + 2 + motion])) != 0) {
+                            hasResidual = true;
+                        }
+                        residual[residualPos++] = 0;
+                    }
+                }
+                if (!hasResidual) {
+                    residualPos -= blockWidth * blockHeight * 4;
+                } else {
+                    residualCount++;
+                }
+                motionVectors[motionPos++] = (byte) ((motionX << 1)
+                                | (hasResidual ? 1 : 0));
+                motionVectors[motionPos++] = (byte) (motionY << 1);
+            }
+        }
+
+        byte[] uncompressed = new byte[len + residualPos];
+        System.arraycopy(motionVectors, 0, uncompressed, 0, len);
+        System.arraycopy(residual, 0, uncompressed, len, residualPos);
+        
+        prevUncompressedData = uncompressedData;
+
+        byte[] encodedData = deflationOf(uncompressed, 1);
+        encodedData[0] = (byte)0;
+        if (encodedData.length > largestFrameSize)
+            largestFrameSize = encodedData.length;
+        System.err.println("residual count: " + residualCount);
+        return encodedData;    
+    }
+       
     @Override
     public int getActualMaxFrameSize() {
         return largestFrameSize;
@@ -127,7 +218,7 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
 
     @Override
     public boolean newFramesAreKeyframes() {
-        return true; // TODO make this false
+        return false;
     }
 
     @Override
