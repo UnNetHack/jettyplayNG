@@ -128,4 +128,19 @@ public abstract class VideoCodec {
      * vertically.
      */
     public abstract boolean getVerticalFlip();
+
+    /**
+     * Returns whether non-repeated frames are keyframes in this codec even
+     * if encoded with getNonKeyframe.
+     * @return true if new frames are always keyframes; false if frames are
+     * keyframes only if they're requested to be keyframes.
+     */
+    public abstract boolean newFramesAreKeyframes();
+    
+    /**
+     * Returns whether repeated frames are keyframes in this codec.
+     * @return true if encoding a repeated frame encodes it as a keyframe;
+     * false if repeated frames are not encoded as keyframes.
+     */
+    public abstract boolean repeatedFramesAreKeyframes();
 }

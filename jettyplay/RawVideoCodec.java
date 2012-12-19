@@ -69,4 +69,14 @@ class RawVideoCodec extends AbstractVideoCodec {
     public int getActualMaxFrameSize() {
         return getActualWidth() * getActualHeight() * 3;
     }
+
+    @Override
+    public boolean newFramesAreKeyframes() {
+        return true;
+    }
+
+    @Override
+    public boolean repeatedFramesAreKeyframes() {
+        return true;
+    }
 }

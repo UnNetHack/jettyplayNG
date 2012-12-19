@@ -20,6 +20,9 @@ public class AVIVideoContainer extends FixedFramerateVideoContainer {
     /* The "movi" list under construction, filled in by callbacks from the
        parent class. */
     private AVIList moviList;
+    /* The "idx1" chunk under construction, filled in at the same time as
+     * moviList. */
+    private AVIChunk idx1;
     /* The most recently encoded video. */
     private AVIList encode;
     /* The previously encoded chunk. */
@@ -34,6 +37,7 @@ public class AVIVideoContainer extends FixedFramerateVideoContainer {
            frames. So we encode those first. We place all the frames in
            one "movi" list. */
         moviList = new AVIList(false, "movi");
+        idx1 = new AVIChunk("idx1");
         this.codec = codec;
         prevChunk = null;
         int encodeFrames = encodeFrames(frames, timer);
@@ -41,6 +45,7 @@ public class AVIVideoContainer extends FixedFramerateVideoContainer {
         
         /* Now we've encoded the frames, we can work out the headers. */
         AVIList avi = new AVIList(true, "AVI ");
+        AVIList hdrl = new AVIList(false, "hdrl");
         AVIChunk header;
         
         checkForCancellation();
@@ -60,7 +65,7 @@ public class AVIVideoContainer extends FixedFramerateVideoContainer {
         header.appendDword(codec.getActualHeight()); /* dwHeight */
         header.appendDword(0); header.appendDword(0);
         header.appendDword(0); header.appendDword(0); /* 4 reserved dwords */
-        avi.appendAtom(header);
+        hdrl.appendAtom(header);
         
         checkForCancellation();
         
@@ -70,13 +75,13 @@ public class AVIVideoContainer extends FixedFramerateVideoContainer {
         header = new AVIChunk("strh");
         header.appendFourcc("vids"); /* fccType */
         header.appendFourcc(codec.getFourCC()); /* fccHandler */
-        header.appendDword(0); /* dwFlags */
+        header.appendDword(0x10); /* dwFlags == AVIF_HASINDEX*/
         header.appendWord((short)0); /* dwPriority */
         header.appendWord((short)0); /* dwLanguage */
         header.appendDword(0); /* dwInitialFrames */
         FramerateRatio fr = convertFramerateToFraction(timer.getFrameRate());
-        header.appendDword(fr.numerator); /* dwRate */
         header.appendDword(fr.denominator); /* dwScale */
+        header.appendDword(fr.numerator); /* dwRate */
         header.appendDword(0); /* dwStart */
         header.appendDword(encodeFrames); /* dwLength */
         header.appendDword(codec.getBlockSize()); /* dwSuggestedBufferSize */
@@ -103,12 +108,15 @@ public class AVIVideoContainer extends FixedFramerateVideoContainer {
         header.appendDword(0); /* biClrUsed */
         header.appendDword(0); /* biClrImportant */
         strl.appendAtom(header);
-        avi.appendAtom(strl);
+        hdrl.appendAtom(strl);
+        avi.appendAtom(hdrl);
 
         checkForCancellation();        
         
         avi.appendAtom(moviList);
         moviList = null; /* free it */
+        avi.appendAtom(idx1);
+        idx1 = null; /* free it too */
 
         checkForCancellation();
         
@@ -137,6 +145,7 @@ public class AVIVideoContainer extends FixedFramerateVideoContainer {
     protected void encodeKeyframe(TtyrecFrame frame) {
         AVIChunk chunk = new AVIChunk("00dc"); /* fourcc for video stream 0 */
         chunk.appendKeyframe(codec, frame);
+        addIndexEntry("00dc", 0x10, moviList.getLength(), chunk.getLength());
         moviList.appendAtom(chunk);
         prevChunk = chunk;
     }
@@ -145,6 +154,9 @@ public class AVIVideoContainer extends FixedFramerateVideoContainer {
     protected void encodeNonKeyframe(TtyrecFrame frame, TtyrecFrame prevFrame) {
         AVIChunk chunk = new AVIChunk("00dc"); /* fourcc for video stream 0 */
         chunk.appendNonKeyframe(codec, frame, prevFrame);
+        addIndexEntry("00dc",
+                codec.newFramesAreKeyframes() ? 0x10 : 0x0,
+                moviList.getLength(), chunk.getLength());
         moviList.appendAtom(chunk);
         prevChunk = chunk;
     }
@@ -153,14 +165,26 @@ public class AVIVideoContainer extends FixedFramerateVideoContainer {
     protected void encodeRepeatedFrame(TtyrecFrame frame) {
         AVIChunk chunk = new AVIChunk("00dc"); /* fourcc for video stream 0 */
         chunk.appendRepeatedFrame(codec, frame, prevChunk);
+        addIndexEntry("00dc",
+                codec.repeatedFramesAreKeyframes() ? 0x10 : 0x0,
+                moviList.getLength(), chunk.getLength());
         moviList.appendAtom(chunk);
         prevChunk = chunk;
     }
 
     @Override
     public void outputEncode(OutputStream os) throws IOException {
-        //if (encode == null) throw new IllegalStateException("No encode to write.");
+        if (encode == null)
+            throw new IllegalStateException("No encode to write.");
         encode.serialize(os);
+    }
+
+    private void addIndexEntry(String fourcc,
+            int flags, int offset, int length) {
+        idx1.appendFourcc(fourcc);
+        idx1.appendDword(flags);
+        idx1.appendDword(offset - 8);
+        idx1.appendDword(length);
     }
     
     /**
@@ -216,9 +240,12 @@ public class AVIVideoContainer extends FixedFramerateVideoContainer {
          * @param a The AVIList to be mutated.
          */
         public void insertInto(AVIList a) {
+            byte[] paddingByte = {0};
             copyIntegerAs4ByteLE(length-8, lengthPlaceholder, 0);
             a.bytes.appendByteChunkList(bytes);
             a.length += length;
+            if (a.length % 2 == 1)
+                a.appendByteArray(paddingByte);
         }
         
         /**
