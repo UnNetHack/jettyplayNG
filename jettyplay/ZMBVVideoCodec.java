@@ -165,7 +165,7 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
                 // outside the frame. This algorithm doesn't, though.
                 boolean hasResidual = false;
                 for (int j = y * blockHeight * w * 4;
-                        j < (y + 1) * blockHeight * w * 4; j+= w * 4) {
+                        j < (y + 1) * blockHeight * w * 4; j += w * 4) {
                     for (int k = x * 4 * blockWidth + j;
                             k < (x + 1) * (blockWidth * 4) + j; k += 4) {
                         if ((residual[residualPos++] =
@@ -207,7 +207,6 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
         encodedData[0] = (byte)0;
         if (encodedData.length > largestFrameSize)
             largestFrameSize = encodedData.length;
-        System.err.println("residual count: " + residualCount);
         return encodedData;    
     }
        

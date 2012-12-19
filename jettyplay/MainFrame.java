@@ -1127,7 +1127,8 @@ public class MainFrame extends JFrame
          */
         if (currentSource.getTtyrec() != null &&
             currentSource.getTtyrec().getFrameCount() > 0 &&
-            currentSource.decodeProgress() == currentSource.getTtyrec().getFrameCount())
+            currentSource.backportDecodeProgress()
+                >= currentSource.getTtyrec().getFrameCount())
             new SaveAsVideoDialog(this, currentSource.getTtyrec()).setVisible(true);
         else
             JOptionPane.showMessageDialog(fileMenu,

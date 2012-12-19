@@ -20,7 +20,7 @@ public abstract class FixedFramerateVideoContainer implements VideoContainer {
 
     private final Set<ProgressListener> progressListeners;
     private int frameCount;
-    private static int KEYFRAME_INTERVAL = 60;
+    private static int KEYFRAME_INTERVAL = 150;
     private boolean cancelEncoding = false;
     
     /**

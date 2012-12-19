@@ -39,7 +39,7 @@ public abstract class AbstractVideoCodec extends VideoCodec {
      * @param antialiasing The antialiasing scheme to use on the encode
      * (a RenderingHints.VALUE_TEXT_ANTIALIAS_* value).
      * @see RenderingHints#VALUE_TEXT_ANTIALIAS_OFF
-     * @see RenderingHints#VALUE_TEXT_ANTIALIAS_OFF
+     * @see RenderingHints#VALUE_TEXT_ANTIALIAS_ON
      */
     public AbstractVideoCodec(int height, Font font, Object antialiasing) {
         this.height = height;

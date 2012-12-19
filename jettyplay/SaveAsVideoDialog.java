@@ -275,14 +275,14 @@ public class SaveAsVideoDialog extends JDialog implements ProgressListener {
                             ? new FrameTimeConvertor() {
                         
                         public double getFrameRate() {
-                            return 60.0;
+                            return 30.0;
                         }
                         
                         public void resetConvertor() {
                         }
                         
                         public int convertFrameTime(double frameTime) {
-                            return (int) (frameTime * 60);
+                            return (int) (frameTime * 30);
                         }
                     } : logSpeedButton.isSelected()
                             ? new FrameTimeConvertor() {
@@ -291,7 +291,7 @@ public class SaveAsVideoDialog extends JDialog implements ProgressListener {
                         private double adjustedLastFrameTime = 0;
                         
                         public double getFrameRate() {
-                            return 60.0;
+                            return 30.0;
                         }
                         
                         public void resetConvertor() {
@@ -307,7 +307,7 @@ public class SaveAsVideoDialog extends JDialog implements ProgressListener {
                                 adjustedLastFrameTime += frameTime - lastFrameTime;
                             }
                             lastFrameTime = frameTime;
-                            return (int) (adjustedLastFrameTime * 60);
+                            return (int) (adjustedLastFrameTime * 30);
                             
                         }
                     } : new FrameTimeConvertor() {
