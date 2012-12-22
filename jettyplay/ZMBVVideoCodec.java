@@ -88,9 +88,9 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
         encodedData[3] = (byte)0x1;
         encodedData[4] = (byte)0x8;
         int bW = getRenderer().getCharWidth();
-        if (bW % super.getActualWidth() != 0) blockWidth = bW;
+        if (super.getActualWidth() % bW == 0) blockWidth = bW;
         int bH = getRenderer().getCharHeight();
-        if (bH % super.getActualHeight() != 0) blockHeight = bH;
+        if (super.getActualHeight() % bH == 0) blockHeight = bH;
         encodedData[5] = (byte)blockWidth;
         encodedData[6] = (byte)blockHeight;
         if (encodedData.length > largestFrameSize)

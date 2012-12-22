@@ -575,22 +575,16 @@ public class VDURenderer {
                 break;
             case RESIZE_FONT:
             case RESIZE_WIDTH:
-                int height = h / buffer.height;
-                int width = w / buffer.width;
+                int height = h / buffer.getRows();
+                int width = w / buffer.getColumns();
                 fm = g.getFontMetrics(normalFont = new Font(fontName, fontStyle, charHeight));
                 // adapt current font size (from small up to best fit)
-                if (fm.getHeight() < height && (fm.charWidth('@') < width && resizeStrategy == RESIZE_FONT)) {
-                    do {
-                        fm = g.getFontMetrics(normalFont = new Font(fontName, fontStyle, ++charHeight));
-                    } while (fm.getHeight() < height &&
-                             (fm.charWidth('@') < width && resizeStrategy == RESIZE_FONT));
+                while (fm.getHeight() < height && (fm.charWidth('@') < width || resizeStrategy != RESIZE_FONT)) {
+                    fm = g.getFontMetrics(normalFont = new Font(fontName, fontStyle, ++charHeight));
                 }
                 // now check if we got a font that is too large
-                if (fm.getHeight() > height || (fm.charWidth('@') > width && resizeStrategy == RESIZE_FONT)) {
-                    do {
-                        fm = g.getFontMetrics(normalFont = new Font(fontName, fontStyle, --charHeight));
-                    } while (charHeight > 1 && (fm.getHeight() > height ||
-                             (fm.charWidth('@') > width && resizeStrategy == RESIZE_FONT)));
+                while (fm.getHeight() > height || (fm.charWidth('@') > width && resizeStrategy == RESIZE_FONT)) {
+                    fm = g.getFontMetrics(normalFont = new Font(fontName, fontStyle, --charHeight));
                 }
                 if (charHeight <= 1) {
                     System.err.println("VDU: error during resize, resetting");
