@@ -81,7 +81,7 @@ public class AboutDialog extends JDialog {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(7, 7, 12, 8);
         getContentPane().add(appTitleLabel, gridBagConstraints);
 
         appDescLabel.setFont(appDescLabel.getFont());
@@ -92,7 +92,7 @@ public class AboutDialog extends JDialog {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 1;
         gridBagConstraints.gridwidth = java.awt.GridBagConstraints.RELATIVE;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(0, 7, 12, 7);
         getContentPane().add(appDescLabel, gridBagConstraints);
 
         appDescLabel1.setFont(appDescLabel1.getFont());
@@ -103,7 +103,7 @@ public class AboutDialog extends JDialog {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 3;
         gridBagConstraints.gridwidth = java.awt.GridBagConstraints.RELATIVE;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(0, 8, 0, 7);
         getContentPane().add(appDescLabel1, gridBagConstraints);
 
         jPanel1.setName("jPanel1"); // NOI18N
@@ -131,7 +131,7 @@ public class AboutDialog extends JDialog {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 2;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(0, 7, 12, 7);
         getContentPane().add(jPanel1, gridBagConstraints);
 
         jPanel2.setName("jPanel2"); // NOI18N

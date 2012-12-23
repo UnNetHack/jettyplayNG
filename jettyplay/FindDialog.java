@@ -67,7 +67,7 @@ public class FindDialog extends javax.swing.JDialog {
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(0, 7, 0, 7);
         getContentPane().add(searchPanel, gridBagConstraints);
 
         searchResultLabel.setText("No search performed yet.");
@@ -76,7 +76,7 @@ public class FindDialog extends javax.swing.JDialog {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 1;
         gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(0, 7, 3, 7);
         getContentPane().add(searchResultLabel, gridBagConstraints);
 
         directionPanel.setName("directionPanel"); // NOI18N
@@ -94,7 +94,7 @@ public class FindDialog extends javax.swing.JDialog {
         directionBackwardRadioButton.setText("Backward");
         directionBackwardRadioButton.setName("directionBackwardRadioButton"); // NOI18N
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(0, 15, 0, 0);
         directionPanel.add(directionBackwardRadioButton, gridBagConstraints);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
@@ -102,7 +102,7 @@ public class FindDialog extends javax.swing.JDialog {
         gridBagConstraints.gridy = 2;
         gridBagConstraints.gridwidth = java.awt.GridBagConstraints.REMAINDER;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(0, 7, 3, 7);
         getContentPane().add(directionPanel, gridBagConstraints);
 
         ignoreCaseCheckBox.setMnemonic('i');
@@ -113,7 +113,7 @@ public class FindDialog extends javax.swing.JDialog {
         gridBagConstraints.gridy = 3;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(0, 7, 0, 0);
         getContentPane().add(ignoreCaseCheckBox, gridBagConstraints);
 
         regexCheckBox.setMnemonic('r');
@@ -123,7 +123,7 @@ public class FindDialog extends javax.swing.JDialog {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 4;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(0, 7, 0, 0);
         getContentPane().add(regexCheckBox, gridBagConstraints);
 
         wrapAroundCheckBox.setMnemonic('w');
@@ -135,7 +135,7 @@ public class FindDialog extends javax.swing.JDialog {
         gridBagConstraints.gridy = 5;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(0, 7, 7, 0);
         getContentPane().add(wrapAroundCheckBox, gridBagConstraints);
 
         findNextButton.setMnemonic('f');
@@ -150,7 +150,7 @@ public class FindDialog extends javax.swing.JDialog {
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 5;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.SOUTH;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 7, 7);
         getContentPane().add(findNextButton, gridBagConstraints);
 
         closeButton.setMnemonic('c');
@@ -166,7 +166,7 @@ public class FindDialog extends javax.swing.JDialog {
         gridBagConstraints.gridy = 5;
         gridBagConstraints.ipadx = 15;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.SOUTH;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 7, 7);
         getContentPane().add(closeButton, gridBagConstraints);
 
         pack();

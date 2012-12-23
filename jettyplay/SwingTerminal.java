@@ -195,6 +195,6 @@ public class SwingTerminal extends JComponent {
      */
     @Override
     public Insets getInsets() {
-        return insets;
+        return insets == null ? new Insets(0,0,0,0) : insets;
     }
 }

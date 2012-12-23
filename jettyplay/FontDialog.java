@@ -56,7 +56,7 @@ public class FontDialog extends javax.swing.JDialog {
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        gridBagConstraints.insets = null;
+        gridBagConstraints.insets = new java.awt.Insets(7, 7, 3, 7);
         getContentPane().add(fontComboBoxLabel, gridBagConstraints);
 
         fontComboBox.setModel(new DefaultComboBoxModel(
@@ -68,8 +68,9 @@ public class FontDialog extends javax.swing.JDialog {
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 1;
     gridBagConstraints.gridwidth = 2;
+    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-    gridBagConstraints.insets = null;
+    gridBagConstraints.insets = new java.awt.Insets(0, 7, 0, 7);
     getContentPane().add(fontComboBox, gridBagConstraints);
 
     cancelButton.setMnemonic('c');
@@ -84,7 +85,7 @@ public class FontDialog extends javax.swing.JDialog {
     gridBagConstraints.gridy = 2;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.SOUTHEAST;
     gridBagConstraints.weightx = 1.0;
-    gridBagConstraints.insets = null;
+    gridBagConstraints.insets = new java.awt.Insets(0, 7, 7, 0);
     getContentPane().add(cancelButton, gridBagConstraints);
 
     okButton.setMnemonic('s');
@@ -98,7 +99,7 @@ public class FontDialog extends javax.swing.JDialog {
     gridBagConstraints.gridx = 1;
     gridBagConstraints.gridy = 2;
     gridBagConstraints.anchor = java.awt.GridBagConstraints.SOUTHEAST;
-    gridBagConstraints.insets = null;
+    gridBagConstraints.insets = new java.awt.Insets(0, 7, 7, 7);
     getContentPane().add(okButton, gridBagConstraints);
 
     pack();
