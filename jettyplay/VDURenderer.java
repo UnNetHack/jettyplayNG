@@ -71,9 +71,6 @@ public class VDURenderer {
         if (fontFamilyExists("Menlo")) {
             return "Menlo";
         }
-        if (fontFamilyExists("Monaco")) {
-            return "Monaco";
-        }
         /* fixedwidth fonts typically used on Linux */
         if (fontFamilyExists("DejaVu Sans Mono")) {
             return "DejaVu Sans Mono";
@@ -93,6 +90,10 @@ public class VDURenderer {
         }
         if (fontFamilyExists("Courier New")) {
             return "Courier New";
+        }
+        /* fonts that are OK but missing characters */
+        if (fontFamilyExists("Monaco")) {
+            return "Monaco";
         }
         return "Monospaced";
     }
