@@ -26,11 +26,13 @@ class RawVideoCodec extends AbstractVideoCodec {
      * @param font The font to encode with.
      * @param antialiasing The antialiasing scheme to use on the encode
      * (a RenderingHints.VALUE_TEXT_ANTIALIAS_* value).
+     * @param allowBold Whether to use bold fonts in addition to color.
      * @see RenderingHints#VALUE_TEXT_ANTIALIAS_OFF
      * @see RenderingHints#VALUE_TEXT_ANTIALIAS_OFF
      */
-    public RawVideoCodec(int height, Font font, Object antialiasing) {
-        super(height, font, antialiasing);
+    public RawVideoCodec(int height, Font font, Object antialiasing,
+                         boolean allowBold) {
+        super(height, font, antialiasing, allowBold);
     }
 
     @Override

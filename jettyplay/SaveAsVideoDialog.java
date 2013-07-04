@@ -71,6 +71,7 @@ public class SaveAsVideoDialog extends JDialog implements ProgressListener {
         progressBar = new javax.swing.JProgressBar();
         javax.swing.JLabel jLabel4 = new javax.swing.JLabel();
         sizeComboBox = new javax.swing.JComboBox();
+        allowBoldCheckBox = new javax.swing.JCheckBox();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Save as Video");
@@ -215,6 +216,15 @@ public class SaveAsVideoDialog extends JDialog implements ProgressListener {
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         getContentPane().add(sizeComboBox, gridBagConstraints);
 
+        allowBoldCheckBox.setSelected(true);
+        allowBoldCheckBox.setText("Use bold fonts");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 6;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        getContentPane().add(allowBoldCheckBox, gridBagConstraints);
+
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
@@ -251,13 +261,15 @@ public class SaveAsVideoDialog extends JDialog implements ProgressListener {
         progressBar.setEnabled(true);
         final VideoCodec[] codecs = {
             new ZMBVVideoCodec(height, parent.getTerminalFont(),
-                    antialiasingCheckBox.isSelected() ?
-                RenderingHints.VALUE_TEXT_ANTIALIAS_ON :
-                RenderingHints.VALUE_TEXT_ANTIALIAS_OFF),
+            antialiasingCheckBox.isSelected()
+            ? RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+            : RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+            allowBoldCheckBox.isSelected()),
             new RawVideoCodec(height, parent.getTerminalFont(),
-                    antialiasingCheckBox.isSelected() ?
-                RenderingHints.VALUE_TEXT_ANTIALIAS_ON :
-                RenderingHints.VALUE_TEXT_ANTIALIAS_OFF)};
+            antialiasingCheckBox.isSelected()
+            ? RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+            : RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+            allowBoldCheckBox.isSelected())};
         final int fixedFramerate = (int)(double)(fixedSpeedSpinner.getModel()).getValue();
         
         encodingContainer = new AVIVideoContainer();
@@ -350,6 +362,7 @@ public class SaveAsVideoDialog extends JDialog implements ProgressListener {
     }//GEN-LAST:event_okButtonActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JCheckBox allowBoldCheckBox;
     private javax.swing.JCheckBox antialiasingCheckBox;
     private javax.swing.JComboBox codecComboBox;
     private javax.swing.JComboBox containerComboBox;

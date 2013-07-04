@@ -19,7 +19,7 @@ import java.util.zip.Deflater;
  * 
  * @author ais523
  */
-class ZMBVVideoCodec extends AbstractVideoCodec {
+public class ZMBVVideoCodec extends AbstractVideoCodec {
 
     Deflater deflater;
     int largestFrameSize = 0;
@@ -27,8 +27,9 @@ class ZMBVVideoCodec extends AbstractVideoCodec {
     int blockHeight = -1;
     byte[] prevUncompressedData;
     
-    public ZMBVVideoCodec(int height, Font terminalFont, Object object) {
-        super(height, terminalFont, object);
+    public ZMBVVideoCodec(int height, Font terminalFont, Object object,
+                          boolean allowBold) {
+        super(height, terminalFont, object, allowBold);
         deflater = new Deflater(Deflater.BEST_COMPRESSION);
     }
 

@@ -30,21 +30,25 @@ public abstract class AbstractVideoCodec extends VideoCodec {
     private Graphics2D graphics;
     private DataBufferByte dataBuffer = null;
     private BufferedImage image = null;
+    private final boolean allowBold;
     
     /**
      * Creates a new abstract video codec to encode videos with the specified
      * parameters.
      * @param height The maximum height of the resulting encode.
      * @param font The font to encode with.
-     * @param antialiasing The antialiasing scheme to use on the encode
+     * @param antialiasing The antialiasing scheme to use on the encode.
+     * @param allowBold Whether to use bold fonts in addition to color.
      * (a RenderingHints.VALUE_TEXT_ANTIALIAS_* value).
      * @see RenderingHints#VALUE_TEXT_ANTIALIAS_OFF
      * @see RenderingHints#VALUE_TEXT_ANTIALIAS_ON
      */
-    public AbstractVideoCodec(int height, Font font, Object antialiasing) {
+    public AbstractVideoCodec(int height, Font font, Object antialiasing,
+            boolean allowBold) {
         this.height = height;
         this.font = font;
         this.antialiasing = antialiasing;
+        this.allowBold = allowBold;
     }
     
     /**
@@ -103,6 +107,7 @@ public abstract class AbstractVideoCodec extends VideoCodec {
             renderer = new VDURenderer(frame.getTerminalState(), font, temp.createGraphics());
             renderer.setResizeStrategy(VDURenderer.RESIZE_WIDTH);
             renderer.setTextAntialiasingType(antialiasing);
+            renderer.setAllowBold(allowBold);
             renderer.setBounds(0, 0, 1, height, temp.createGraphics());
             constructImage();
             renderer.setBounds(0, 0, imageWidth, imageHeight, graphics);
