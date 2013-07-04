@@ -178,6 +178,10 @@ public class SwingTerminal extends JComponent {
     public int getCurrentTerminalHeight() {
         return renderer.getCurrentTerminalHeight();
     }
+
+    public void setAllowBold(boolean bold) {
+        renderer.setAllowBold(bold);
+    }
     
     /**
      * Paint the current screen.

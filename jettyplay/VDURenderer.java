@@ -107,6 +107,7 @@ public class VDURenderer {
     private int resizeStrategy; /* current resizing strategy */
     private Object textAntialiasingType; /* how to render text */
     private boolean colorPrinting = false; /* print display in color */
+    private boolean allowBold = true;
     /*    private BufferedImage backingStore = null;
     private int backingStoreRows = 0;
     private int backingStoreColumns = 0;*/
@@ -405,7 +406,8 @@ public class VDURenderer {
                 }
                 if ((currAttr & VDUBuffer.BOLD) != 0) {
                     // g.setFont(new Font(normalFont.getName(), Font.BOLD, normalFont.getSize()));
-                    if (!renderHTML) g.setFont(normalFont.deriveFont(Font.BOLD));
+                    if (!renderHTML && allowBold) g.setFont(normalFont.deriveFont(Font.BOLD));
+                    else if (!renderHTML) g.setFont(normalFont);
                     if (null != color[COLOR_BOLD]) {
                         fg = color[COLOR_BOLD];
                     } else {
@@ -656,5 +658,15 @@ public class VDURenderer {
      */
     public int getCharWidth() {
         return charWidth;
+    }
+    
+    /**
+     * Sets whether this renderer may render in bold or not. (If not, bold is
+     * rendered entirely with color.)
+     * @param bold True if the renderer should use bold when the input requests
+     * bold (in addition to color); false if it should use color only.
+     */
+    public void setAllowBold(boolean bold) {
+        allowBold = bold;
     }
 }

@@ -490,6 +490,23 @@ public class MainFrame extends JFrame
             }
         });
         encodingButtonGroup.add(latin1EncodingMenuItem);
+        JMenu boldMenu = uiBuilder.addJMenu(viewMenu, 'b', "Render bold using");
+        ButtonGroup boldButtonGroup = new ButtonGroup();
+        allowBoldMenuItem = uiBuilder.addJRadioButtonMenuItem(
+                boldMenu, 'f', "Color + Font", null, false, new ChangeListener() {
+            public void stateChanged(ChangeEvent evt) {
+                allowBoldMenuItemStateChanged(evt);
+            }
+        });
+        allowBoldMenuItem.setSelected(true);
+        boldButtonGroup.add(allowBoldMenuItem);
+        disallowBoldMenuItem = uiBuilder.addJRadioButtonMenuItem(
+                boldMenu, 'c', "Color only", null, false, new ChangeListener() {
+            public void stateChanged(ChangeEvent evt) {
+                disallowBoldMenuItemStateChanged(evt);
+            }
+        });
+        boldButtonGroup.add(disallowBoldMenuItem);
         JMenu antialiasingMenu = uiBuilder.addJMenu(viewMenu, 'a', "Antialiasing");
         ButtonGroup antialiasButtonGroup = new ButtonGroup();
         antialiasingOffMenuItem = uiBuilder.addJRadioButtonMenuItem(
@@ -908,6 +925,14 @@ public class MainFrame extends JFrame
         timePanel.setVisible(controlBarMenuItem.isSelected());
     }
 
+    private void allowBoldMenuItemStateChanged(ChangeEvent evt) {
+        if (allowBoldMenuItem.isSelected()) replayTerminal.setAllowBold(true);
+    }
+
+    private void disallowBoldMenuItemStateChanged(ChangeEvent evt) {
+        if (disallowBoldMenuItem.isSelected()) replayTerminal.setAllowBold(false);
+    }
+    
     private void antialiasingOffMenuItemStateChanged(ChangeEvent evt) {
         if(antialiasingOffMenuItem.isSelected())
             replayTerminal.setTextAntialiasingType(RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
@@ -1310,7 +1335,8 @@ public class MainFrame extends JFrame
         }
     }
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
+    // Variable declarations
+    private JRadioButtonMenuItem allowBoldMenuItem;
     private JRadioButtonMenuItem antialiasingBGRMenuItem;
     private JRadioButtonMenuItem antialiasingDefaultMenuItem;
     private JRadioButtonMenuItem antialiasingOffMenuItem;
@@ -1321,6 +1347,7 @@ public class MainFrame extends JFrame
     private JCheckBoxMenuItem autoskipMenuItem;
     private JCheckBoxMenuItem controlBarMenuItem;
     private JLabel curTime;
+    private JRadioButtonMenuItem disallowBoldMenuItem;
     private JMenu encodingMenu;
     private JMenu fileMenu;
     private JRadioButtonMenuItem fixedTerminalSizeMenuItem;
@@ -1346,7 +1373,6 @@ public class MainFrame extends JFrame
     private JRadioButtonMenuItem unicodeEncodingMenuItem;
     private JMenu viewMenu;
     private UIBuilder uiBuilder;
-    // End of variables declaration
     private SwingTerminal replayTerminal;
     private SidebarPanel sidebarPane;
     private boolean menuBarShowing = true;
