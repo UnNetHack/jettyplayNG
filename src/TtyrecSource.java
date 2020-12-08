@@ -615,12 +615,6 @@ public abstract class TtyrecSource extends Thread {
         return leadingEdgeDecode;
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        if (debug) System.out.println("Source finalized! ("+
-                "this="+this+this.hashCode()+")");
-    }
-
     void setWantedFrame(int i) {
         rec.setWantedFrame(i);
     }

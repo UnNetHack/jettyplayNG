@@ -119,7 +119,7 @@ public class TtyrecAnalyzer extends TtyrecWorker {
                 } catch (IndexOutOfBoundsException ex) {
                     return -1;
                 }
-                return i;                
+                return i;
             }
 
             @Override
@@ -187,8 +187,8 @@ public class TtyrecAnalyzer extends TtyrecWorker {
         byte[] c = new byte[1];
         getNextNBytes(c,0,1);
         return c[0];
-    }    
-    
+    }
+
     /**
      * The function that actually does the analysis. This uses the settings
      * already available in the ttyrec object.
@@ -344,7 +344,7 @@ public class TtyrecAnalyzer extends TtyrecWorker {
                         timestamp = d.getTime() / (double)1000;
                         setProgress(byteloc);
                     }
-                    
+
                     // Set the initial timestamp, if necessary, and change
                     // timestamps to be relative.
                     if (timestamp < lastTimestamp && !timestampsFudged) {
@@ -510,16 +510,4 @@ public class TtyrecAnalyzer extends TtyrecWorker {
         }
     }
 
-    @Override
-    /**
-     * Called when the analyzer is finalized.
-     * Has no normal effect, but will print a message if debugging is turned on.
-     */
-    protected void finalize() throws Throwable {
-        super.finalize();
-        if (workingFor.debug)
-            System.out.println("Analyzer finalized! (workingFor="+
-                    workingFor+workingFor.hashCode()+
-                    ", this="+this+this.hashCode()+")");
-    }
 }

@@ -97,12 +97,6 @@ public class TtyrecFrame {
         //System.out.println("Frames created: " + ++created);
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        //System.out.println("Frames destroyed: " + ++destroyed);
-    }
-
     /**
      * Returns the timestamp of this frame, relative to the first frame in the
      * same ttyrec.

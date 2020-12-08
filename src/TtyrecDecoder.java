@@ -154,11 +154,4 @@ public class TtyrecDecoder extends TtyrecWorker {
         }
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        if (workingFor.debug)
-            System.out.println("Decoder finalized! (workingFor="+
-                workingFor+workingFor.hashCode()+
-                ", this="+this+this.hashCode()+")");
-    }
 }
