@@ -34,7 +34,7 @@ import javax.swing.event.ChangeListener;
 public class UIBuilder {
     private final boolean focusable;
     private List<Component> enablableComponents;
-    
+
     /**
      * Construct a new UI builder object.
      * @param focusable If false, nothing constructed via this UI builder will
@@ -44,7 +44,7 @@ public class UIBuilder {
         this.focusable = focusable;
         enablableComponents = new ArrayList<>();
     }
-    
+
     private void connectComponents(Component c,
             Container parent, String position) {
         if (!focusable) c.setFocusable(false);
@@ -55,7 +55,7 @@ public class UIBuilder {
                 parent.add(c);
         }
     }
-    
+
     /**
      * Adds a new JPanel to the UI hierarchy.
      * @param parent The parent to attach the component to. Can be null.
@@ -183,7 +183,7 @@ public class UIBuilder {
         return rv;
     }
 
-    
+
     /**
      * Adds a new JToolBar to the UI hierarchy.
      * @param parent The parent to attach the component to. Can be null.
@@ -197,7 +197,7 @@ public class UIBuilder {
         connectComponents(rv, parent, position);
         return rv;
     }
-    
+
     /**
      * Adds a new JSlider to the UI hierarchy.
      * @param parent The parent to attach the component to. Can be null.
@@ -233,8 +233,7 @@ public class UIBuilder {
         rv.setToolTipText(tooltip);
         rv.setHorizontalTextPosition(SwingConstants.CENTER);
         rv.setVerticalTextPosition(SwingConstants.BOTTOM);
-        rv.setIcon(new ImageIcon(
-                getClass().getResource("/jettyplay/resources/"+iconFilename)));
+        rv.setIcon(new ImageIcon(getClass().getClassLoader().getResource(iconFilename)));
         connectComponents(rv, parent, null);
         enablableComponents.add(rv);
         return rv;
@@ -258,14 +257,13 @@ public class UIBuilder {
         rv.setToolTipText(tooltip);
         rv.setHorizontalTextPosition(SwingConstants.CENTER);
         rv.setVerticalTextPosition(SwingConstants.BOTTOM);
-        rv.setIcon(new ImageIcon(
-                getClass().getResource("/jettyplay/resources/"+iconFilename)));
+        rv.setIcon(new ImageIcon(getClass().getClassLoader().getResource(iconFilename)));
         connectComponents(rv, parent, null);
         if (enablable)
             enablableComponents.add(rv);
         return rv;
     }
-    
+
     /**
      * Adds a new JLabel to the UI hierarchy.
      * @param parent The parent to attach the component to. Can be null.

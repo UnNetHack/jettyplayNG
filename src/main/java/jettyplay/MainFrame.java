@@ -99,7 +99,7 @@ public class MainFrame extends JFrame
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 setIconImage(new ImageIcon(MainFrame.class.getClassLoader().
-                        getResource("jettyplay/resources/icon.png")).getImage());
+                        getResource("icon.png")).getImage());
             }
         });
         // set no file to be open
@@ -220,7 +220,7 @@ public class MainFrame extends JFrame
          * it's being edited by hand.
          */
         uiBuilder = new UIBuilder(false);
-        
+
         mainPanel = uiBuilder.addJPanel(getContentPane(), null);
         timePanel = uiBuilder.addJPanel(mainPanel, BorderLayout.SOUTH);
         JPanel mainToolbarPanel = uiBuilder.addJPanel(mainPanel, BorderLayout.CENTER);
@@ -304,7 +304,7 @@ public class MainFrame extends JFrame
             }
         });
         mainToolbar.add(speedSpinner);
-        
+
         autoskipButton = uiBuilder.addJToggleButton(mainToolbar,
             "Automatically skip past long periods of inactivity",
             "autoskip.png", false, new ChangeListener() {
@@ -766,7 +766,7 @@ public class MainFrame extends JFrame
                 }
             });
             fileChooser.addChoosableFileFilter(fileChooser.getAcceptAllFileFilter());
-            
+
             if (fileChooser.showOpenDialog(mainPanel) != JFileChooser.APPROVE_OPTION) {
                 return;
             }
@@ -932,7 +932,7 @@ public class MainFrame extends JFrame
     private void disallowBoldMenuItemStateChanged(ChangeEvent evt) {
         if (disallowBoldMenuItem.isSelected()) replayTerminal.setAllowBold(false);
     }
-    
+
     private void antialiasingOffMenuItemStateChanged(ChangeEvent evt) {
         if(antialiasingOffMenuItem.isSelected())
             replayTerminal.setTextAntialiasingType(RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
@@ -1160,7 +1160,7 @@ public class MainFrame extends JFrame
                     "Please wait for the ttyrec to finish loading first.",
                     "Cannot Save as Video", JOptionPane.ERROR_MESSAGE);
     }
-    
+
     private void setFontMenuItemActionPerformed(ActionEvent evt) {
         FontDialog fontBox = new FontDialog(this,this);
         fontBox.setVisible(true);
@@ -1395,7 +1395,7 @@ public class MainFrame extends JFrame
     private FindDialog findBox;
 
     private File lastDirectory = null;
-    
+
     public double getMaximumTime() {
         if (getCurrentTtyrec() == null) return 0.0;
         return getCurrentTtyrec().getLength();
@@ -1429,7 +1429,7 @@ public class MainFrame extends JFrame
             canUpdateSelectedFrame = false;
             timeSlider.setValue(timeSlider.getMaximum());
         }
-        timeSlider.repaint();        
+        timeSlider.repaint();
         updateSidebar();
         setTimeLabels();
     }
@@ -1781,7 +1781,7 @@ public class MainFrame extends JFrame
             if(a.equals("-s") && !ddflag) {speedflag = true; continue;}
             if(a.equals("-f") && !ddflag) {frameflag = true; continue;}
             if(a.equals("-z") && !ddflag) {sizeflag = true; continue;}
-            if(a.equals("--") && !ddflag) {ddflag = true; continue;}            
+            if(a.equals("--") && !ddflag) {ddflag = true; continue;}
             ddflag = false;
             if (!sizeflag && !frameflag) {
                 // Looks like it's a filename...
