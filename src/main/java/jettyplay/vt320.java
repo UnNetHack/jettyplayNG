@@ -37,8 +37,12 @@ package jettyplay;
 public class vt320 extends VDUBuffer implements Cloneable {
 
   /** the debug level */
-  private final static int debugVT = 0;
+  private final static int debug = 0;
+  private StringBuilder debugStr;
   private final static int debugAutoResize = 0;
+  public void debug(String notice) {
+      System.out.println(notice);
+  }
 
   /** whether to resize on terminal overflow */
   private boolean autoResize = false;
@@ -92,7 +96,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
     }
   }
 
-  /** 
+  /**
    * Sent the changed window size from the terminal to all listeners.
    * @param c The number of columns.
    * @param r The number of rows.
@@ -108,7 +112,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
             return;
         }
 
-        if (debugVT > 2) {
+        if (debug > 2) {
             System.err.println("setscreensize (" + c + "," + r + ")");
         }
 
@@ -151,7 +155,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
      * This property can also be set manually, e.g. to impose a fixed size on
      * the terminal independent of its input.
      * @return True if the terminal should never be auto-resized.
-     * @see #setVetoAutoResize(boolean) 
+     * @see #setVetoAutoResize(boolean)
      */
     public boolean isVetoAutoResize() {
         return vetoAutoResize;
@@ -162,7 +166,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
      * @param vetoAutoResize True if the terminal should never be auto-resized.
      * Setting this to false does not necessarily make the terminal resize,
      * unless autoResize is also set.
-     * @see #setAutoResize(boolean) 
+     * @see #setAutoResize(boolean)
      */
     public void setVetoAutoResize(boolean vetoAutoResize) {
         this.vetoAutoResize = vetoAutoResize;
@@ -186,11 +190,17 @@ public class vt320 extends VDUBuffer implements Cloneable {
    */
   public vt320(int width, int height) {
     super(width, height);
+
+    debugStr = new StringBuilder();
+
     setVMS(false);
     setIBMCharset(false);
     setTerminalID("vt320");
     setBufferSize(0);
     //setBorder(2, false);
+
+    gx = new char[4];
+    reset();
 
     int nw = getColumns();
     if (nw < 132) nw = 132; //catch possible later 132/80 resizes
@@ -248,6 +258,39 @@ public class vt320 extends VDUBuffer implements Cloneable {
     return terminalID;
   }
 
+  /**
+   * A small conveniance method thar converts the string to a byte array
+   * for sending.
+   * @param s the string to be sent
+   */
+  private boolean write(String s, boolean doecho) {
+    if (debug > 2) {
+      debugStr.append("write(|")
+        .append(s)
+        .append("|,")
+        .append(doecho);
+      debug(debugStr.toString());
+      debugStr.setLength(0);
+    }
+    if (s == null) // aka the empty string.
+      return true;
+    /* NOTE: getBytes() honours some locale, it *CONVERTS* the string.
+     * However, we output only 7bit stuff towards the target, and *some*
+     * 8 bit control codes. We must not mess up the latter, so we do hand
+     * by hand copy.
+     */
+
+    byte arr[] = new byte[s.length()];
+    for (int i = 0; i < s.length(); i++) {
+      arr[i] = (byte) s.charAt(i);
+    }
+    //write(arr); // don't send
+
+    if (doecho)
+      putString(s);
+    return true;
+  }
+
   // ===================================================================
   // the actual terminal emulation code comes here:
   // ===================================================================
@@ -257,10 +300,10 @@ public class vt320 extends VDUBuffer implements Cloneable {
 
   // X - COLUMNS, Y - ROWS
   int R,C;
-  short attributes = 0;
+  long attributes = 0;
 
   int Sc,Sr,Stm,Sbm;
-  short Sa;
+  long Sa;
   char Sgr,Sgl;
   char Sgx[];
 
@@ -311,7 +354,8 @@ public class vt320 extends VDUBuffer implements Cloneable {
   private final static int TSTATE_VT52Y = 15;
   private final static int TSTATE_CSI_TICKS = 16;
   private final static int TSTATE_CSI_EQUAL = 17; /* ESC [ = */
-  private final static int TSTATE_ESCPERCENT = 18; /* ESC % */
+  private final static int TSTATE_TITLE = 18; /* xterm title */
+  private final static int TSTATE_ESCPERCENT = 19; /* ESC % */
 
   /* The graphics charsets
    * B - default ASCII
@@ -320,15 +364,10 @@ public class vt320 extends VDUBuffer implements Cloneable {
    * < - User defined
    * ....
    */
-  char gx[] = {// same initial set as in XTERM.
-    'B', // g0
-    '0', // g1
-    'B', // g2
-    'B', // g3
-  };
-  char gl = 0;		// default GL to G0
-  char gr = 2;		// default GR to G2
-  int onegl = -1;	// single shift override for GL.
+  char gx[];
+  char gl;		// GL (left charset)
+  char gr;		// GR (right charset)
+  int onegl;	// single shift override for GL.
 
   // Map from scoansi linedrawing to DEC _and_ unicode (for the stuff which
   // is not in linedrawing). Got from experimenting with scoadmin.
@@ -435,6 +474,36 @@ public class vt320 extends VDUBuffer implements Cloneable {
     }
     if (oldidx <= tmp.length()) cmd += tmp.substring(oldidx);
     return cmd;
+  }
+
+  /**
+   * A small conveniance method thar converts a 7bit string to the 8bit
+   * version depending on VT52/Output8Bit mode.
+   *
+   * @param s the string to be sent
+   */
+  private boolean writeSpecial(String s) {
+    if (s == null)
+      return true;
+    if (((s.length() >= 3) && (s.charAt(0) == 27) && (s.charAt(1) == 'O'))) {
+      if (vt52mode) {
+        if ((s.charAt(2) >= 'P') && (s.charAt(2) <= 'S')) {
+          s = "\u001b" + s.substring(2); /* ESC x */
+        } else {
+          s = "\u001b?" + s.substring(2); /* ESC ? x */
+        }
+      } else {
+        if (output8bit) {
+          s = "\u008f" + s.substring(2);  /* SS3 x */
+        } /* else keep string as it is */
+      }
+    }
+    if (((s.length() >= 3) && (s.charAt(0) == 27) && (s.charAt(1) == '['))) {
+      if (output8bit) {
+        s = "\u009b" + s.substring(2); /* CSI ... */
+      } /* else keep */
+    }
+    return write(s, false);
   }
 
   private final static char unimap[] = {
@@ -749,10 +818,10 @@ public class vt320 extends VDUBuffer implements Cloneable {
     boolean mapped = false;
     boolean wrappedOnThisCharacter = false;
 
-    if (debugVT > 4) System.out.println("putChar(" + c + " [" + ((int) c) + "]) at R=" + R + " , C=" + C + ", columns=" + columns + ", rows=" + rows);
+    if (debug > 4) debug("putChar(" + c + " [" + ((int) c) + "]) at R=" + R + " , C=" + C + ", columns=" + columns + ", rows=" + rows);
     if (c > 255) {
-      if (debugVT > 0)
-        System.out.println("char > 255:" + (int) c);
+      if (debug > 0)
+        debug("char > 255:" + (int) c);
       //return;
     }
 
@@ -774,18 +843,18 @@ public class vt320 extends VDUBuffer implements Cloneable {
                 R--;
               else
                 insertLine(R, 1, SCROLL_DOWN);
-              if (debugVT > 1)
-                System.out.println("RI");
+              if (debug > 1)
+                debug("RI");
               break;
             case IND:
-              if (debugVT > 2)
-                System.out.println("IND at " + R + ", tm is " + tm + ", bm is " + bm);
+              if (debug > 2)
+                debug("IND at " + R + ", tm is " + tm + ", bm is " + bm);
               if (R == bm || R == rows - 1)
                 insertLine(R, 1, SCROLL_UP);
               else
                 R++;
-              if (debugVT > 1)
-                System.out.println("IND (at " + R + " )");
+              if (debug > 1)
+                debug("IND (at " + R + " )");
               break;
             case NEL:
               if (R == bm || R == rows - 1)
@@ -793,13 +862,13 @@ public class vt320 extends VDUBuffer implements Cloneable {
               else
                 R++;
               C = 0;
-              if (debugVT > 1)
-                System.out.println("NEL (at " + R + " )");
+              if (debug > 1)
+                debug("NEL (at " + R + " )");
               break;
             case HTS:
               Tabs[C] = 1;
-              if (debugVT > 1)
-                System.out.println("HTS");
+              if (debug > 1)
+                debug("HTS");
               break;
             case DCS:
               dcs = "";
@@ -851,12 +920,12 @@ public class vt320 extends VDUBuffer implements Cloneable {
             } while (C < columns && (Tabs[C] == 0));
             lastwaslf = 0;
             break;
-          case '\r':
+          case '\r': // 13 CR
             C = 0;
             break;
-          case '\n':
-            if (debugVT > 3)
-              System.out.println("R= " + R + ", bm " + bm + ", tm=" + tm + ", rows=" + rows);
+          case '\n': // 10 LF
+            if (debug > 3)
+              debug("R= " + R + ", bm " + bm + ", tm=" + tm + ", rows=" + rows);
             if (!vms) {
               if (lastwaslf != 0 && lastwaslf != c)   //  Ray: I do not understand this logic.
                 break;
@@ -892,15 +961,15 @@ public class vt320 extends VDUBuffer implements Cloneable {
               lastwaslf = 0;
               if (c < 32) {
                 if (c != 0)
-                  if (debugVT > 0)
-                    System.out.println("TSTATE_DATA char: " + ((int) c));
+                  if (debug > 0)
+                    debug("TSTATE_DATA char: " + ((int) c));
                 /*break; some BBS really want those characters, like hearst etc. */
                 if (c == 0) /* print 0 ... you bet */
                   break;
               }
               if (C >= columns) {
                 if (autoResize) {
-                    if (debugAutoResize > 0) System.out.println("Making window wider (cursor movement after output)");
+                    if (debugAutoResize > 0) debug("Making window wider (cursor movement after output)");
                     this.setScreenSize(C+1, rows);
                     columns = C + 1;
                 } else if (wraparound) {
@@ -937,7 +1006,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
                       }
                       break;
                     case '<': // 'user preferred' is currently 'ISO Latin-1 suppl
-                      c = (char) (((int) c & 0x7f) | 0x80);
+                      c = (char) ((c & 0x7f) | 0x80);
                       mapped = true;
                       break;
                     case 'A':
@@ -945,7 +1014,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
                       mapped = true;
                       break;
                     default:
-                      System.out.println("Unsupported GL mapping: " + gx[thisgl]);
+                      debug("Unsupported GL mapping: " + gx[thisgl]);
                       break;
                   }
                 }
@@ -960,10 +1029,10 @@ public class vt320 extends VDUBuffer implements Cloneable {
                     case '<':
                     case 'A':
                     case 'B':
-                      //mapped = true;
+                      mapped = true;
                       break;
                     default:
-                      System.out.println("Unsupported GR mapping: " + gx[gr]);
+                      debug("Unsupported GR mapping: " + gx[gr]);
                       break;
                   }
                 }
@@ -977,6 +1046,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
               } else {
                 putChar(C, R, c, attributes);
               }
+
               /*
                 } else {
                 if (insertmode==1) {
@@ -1001,7 +1071,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
           term_state = TSTATE_DATA;
           break;
         }
-        osc += c;
+        osc = osc + c;
         break;
       case TSTATE_ESCPERCENT:
         term_state = TSTATE_DATA;
@@ -1011,7 +1081,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
             case '8': case 'G':
                 characterEncodingOverride = EncodingOverride.UTF8; break;
             default:
-                System.out.println("ESC % " + c + "unhandled.");
+                debug("ESC % " + c + "unhandled.");
         }
         break;
       case TSTATE_ESCSPACE:
@@ -1024,7 +1094,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
             output8bit = true;
             break;
           default:
-            System.out.println("ESC <space> " + c + " unhandled.");
+            debug("ESC <space> " + c + " unhandled.");
         }
         break;
       case TSTATE_ESC:
@@ -1091,16 +1161,16 @@ public class vt320 extends VDUBuffer implements Cloneable {
             else
               R++;
             C = 0;
-            if (debugVT > 1)
-              System.out.println("ESC E (at " + R + ")");
+            if (debug > 1)
+              debug("ESC E (at " + R + ")");
             break;
           case 'D': /* IND */
             if (R == bm || R == rows - 1)
               insertLine(R, 1, SCROLL_UP);
             else
               R++;
-            if (debugVT > 1)
-              System.out.println("ESC D (at " + R + " )");
+            if (debug > 1)
+              debug("ESC D (at " + R + " )");
             break;
           case 'J': /* erase to end of screen */
             if (R < rows - 1)
@@ -1113,8 +1183,8 @@ public class vt320 extends VDUBuffer implements Cloneable {
               deleteArea(C, R, columns - C, 1, attributes);
             break;
           case 'M': // RI
-            if (debugVT > 0)
-              System.out.println("ESC M : R is "+R+", tm is "+tm+", bm is "+bm);
+            if (debug > 0)
+              debug("ESC M : R is "+R+", tm is "+tm+", bm is "+bm);
             if (R > bm) // outside scrolling region
               break;
             if (R > tm) { // just go up 1 line.
@@ -1123,12 +1193,12 @@ public class vt320 extends VDUBuffer implements Cloneable {
               insertLine(R, 1, SCROLL_DOWN);
             }
             /* else do nothing ; */
-            if (debugVT > 2)
-              System.out.println("ESC M ");
+            if (debug > 2)
+              debug("ESC M ");
             break;
           case 'H':
-            if (debugVT > 1)
-              System.out.println("ESC H at " + C);
+            if (debug > 1)
+              debug("ESC H at " + C);
             /* right border probably ...*/
             if (C >= columns)
               C = columns - 1;
@@ -1142,20 +1212,20 @@ public class vt320 extends VDUBuffer implements Cloneable {
             break;
           case '=':
             /*application keypad*/
-            if (debugVT > 0)
-              System.out.println("ESC =");
+            if (debug > 0)
+              debug("ESC =");
             keypadmode = true;
             break;
           case '<': /* vt52 mode off */
             vt52mode = false;
             break;
           case '>': /*normal keypad*/
-            if (debugVT > 0)
-              System.out.println("ESC >");
+            if (debug > 0)
+              debug("ESC >");
             keypadmode = false;
             break;
-          case '7': /*save cursor, attributes, margins */
-/*            Sc = C;
+          case '7': /* DECSC: save cursor, attributes */
+            Sc = C;
             Sr = R;
             Sgl = gl;
             Sgr = gr;
@@ -1164,12 +1234,11 @@ public class vt320 extends VDUBuffer implements Cloneable {
             for (int i = 0; i < 4; i++) Sgx[i] = gx[i];
             Stm = getTopMargin();
             Sbm = getBottomMargin();
-            if (debugVT > 1)
-              System.out.println("ESC 7");
-            break;*/
+            if (debug > 1)
+              debug("ESC 7");
             break;
-          case '8': /*restore cursor, attributes, margins */
-/*            C = Sc;
+          case '8': /* DECRC: restore cursor, attributes */
+            C = Sc;
             R = Sr;
             gl = Sgl;
             gr = Sgr;
@@ -1177,9 +1246,8 @@ public class vt320 extends VDUBuffer implements Cloneable {
             setTopMargin(Stm);
             setBottomMargin(Sbm);
             attributes = Sa;
-            if (debugVT > 1)
-              System.out.println("ESC 8");
-            break;*/
+            if (debug > 1)
+              debug("ESC 8");
             break;
           case '(': /* Designate G0 Character set (ISO 2022) */
             term_state = TSTATE_SETG0;
@@ -1223,51 +1291,66 @@ public class vt320 extends VDUBuffer implements Cloneable {
           case 'Y': /* vt52 cursor address mode , next chars are x,y */
             term_state = TSTATE_VT52Y;
             break;
+          case '_':
+          	term_state = TSTATE_TITLE;
+          	break;
+          case '\\':
+          	// TODO save title
+          	term_state = TSTATE_DATA;
+          	break;
           default:
-            System.out.println("ESC unknown letter: " + c + " (" + ((int) c) + ")");
+            debug("ESC unknown letter: " + c + " (" + ((int) c) + ")");
             break;
         }
         break;
       case TSTATE_VT52X:
         C = c - 37;
+        if (C < 0)
+          C = 0;
+        else if (C >= width)
+          C = width - 1;
         term_state = TSTATE_VT52Y;
         break;
       case TSTATE_VT52Y:
         R = c - 37;
+        if (R < 0)
+          R = 0;
+        else if (R >= height)
+          R = height - 1;
         term_state = TSTATE_DATA;
         break;
       case TSTATE_SETG0:
         if (c != '0' && c != 'A' && c != 'B' && c != '<')
-          System.out.println("ESC ( " + c + ": G0 char set?  (" + ((int) c) + ")");
+          debug("ESC ( " + c + ": G0 char set?  (" + ((int) c) + ")");
         else {
-          if (debugVT > 2) System.out.println("ESC ( : G0 char set  (" + c + " " + ((int) c) + ")");
+          if (debug > 2) debug("ESC ( : G0 char set  (" + c + " " + ((int) c) + ")");
           gx[0] = c;
         }
         term_state = TSTATE_DATA;
         break;
       case TSTATE_SETG1:
         if (c != '0' && c != 'A' && c != 'B' && c != '<') {
-          System.out.println("ESC ) " + c + " (" + ((int) c) + ") :G1 char set?");
+          debug("ESC ) " + c + " (" + ((int) c) + ") :G1 char set?");
         } else {
-          if (debugVT > 2) System.out.println("ESC ) :G1 char set  (" + c + " " + ((int) c) + ")");
+          if (debug > 2) debug("ESC ) :G1 char set  (" + c + " " + ((int) c) + ")");
           gx[1] = c;
         }
         term_state = TSTATE_DATA;
         break;
       case TSTATE_SETG2:
         if (c != '0' && c != 'A' && c != 'B' && c != '<')
-          System.out.println("ESC*:G2 char set?  (" + ((int) c) + ")");
+          debug("ESC*:G2 char set?  (" + ((int) c) + ")");
         else {
-          if (debugVT > 2) System.out.println("ESC*:G2 char set  (" + c + " " + ((int) c) + ")");
+          if (debug > 2) debug("ESC*:G2 char set  (" + c + " " + ((int) c) + ")");
           gx[2] = c;
         }
         term_state = TSTATE_DATA;
         break;
       case TSTATE_SETG3:
         if (c != '0' && c != 'A' && c != 'B' && c != '<')
-          System.out.println("ESC+:G3 char set?  (" + ((int) c) + ")");
+          debug("ESC+:G3 char set?  (" + ((int) c) + ")");
         else {
-          if (debugVT > 2) System.out.println("ESC+:G3 char set  (" + c + " " + ((int) c) + ")");
+          if (debug > 2) debug("ESC+:G3 char set  (" + c + " " + ((int) c) + ")");
           gx[3] = c;
         }
         term_state = TSTATE_DATA;
@@ -1277,10 +1360,10 @@ public class vt320 extends VDUBuffer implements Cloneable {
           case '8':
             for (int i = 0; i < columns; i++)
               for (int j = 0; j < rows; j++)
-                putChar(i, j, 'E', (short)0);
+                putChar(i, j, 'E', 0);
             break;
           default:
-            System.out.println("ESC # " + c + " not supported.");
+            debug("ESC # " + c + " not supported.");
             break;
         }
         term_state = TSTATE_DATA;
@@ -1290,7 +1373,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
           term_state = TSTATE_DATA;
           break;
         }
-        dcs += c;
+        dcs = dcs + c;
         break;
 
       case TSTATE_DCEQ:
@@ -1306,7 +1389,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
           case '7':
           case '8':
           case '9':
-            DCEvars[DCEvar] = DCEvars[DCEvar] * 10 + ((int) c) - 48;
+            DCEvars[DCEvar] = DCEvars[DCEvar] * 10 + (c) - 48;
             term_state = TSTATE_DCEQ;
             break;
           case ';':
@@ -1315,12 +1398,12 @@ public class vt320 extends VDUBuffer implements Cloneable {
             term_state = TSTATE_DCEQ;
             break;
           case 's': // XTERM_SAVE missing!
-            if (true || debugVT > 1)
-              System.out.println("ESC [ ? " + DCEvars[0] + " s unimplemented!");
+            if (true || debug > 1)
+              debug("ESC [ ? " + DCEvars[0] + " s unimplemented!");
             break;
           case 'r': // XTERM_RESTORE
-            if (true || debugVT > 1)
-              System.out.println("ESC [ ? " + DCEvars[0] + " r");
+            if (true || debug > 1)
+              debug("ESC [ ? " + DCEvars[0] + " r");
             /* DEC Mode reset */
             for (int i = 0; i <= DCEvar; i++) {
               switch (DCEvars[i]) {
@@ -1347,13 +1430,13 @@ public class vt320 extends VDUBuffer implements Cloneable {
                   mouserpt = DCEvars[i];
                   break;
                 default:
-                  System.out.println("ESC [ ? " + DCEvars[0] + " r, unimplemented!");
+                  debug("ESC [ ? " + DCEvars[0] + " r, unimplemented!");
               }
             }
             break;
           case 'h': // DECSET
-            if (debugVT > 0)
-              System.out.println("ESC [ ? " + DCEvars[0] + " h");
+            if (debug > 0)
+              debug("ESC [ ? " + DCEvars[0] + " h");
             /* DEC Mode set */
             for (int i = 0; i <= DCEvar; i++) {
               switch (DCEvars[i]) {
@@ -1390,7 +1473,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
                    * resize the window larger. (This can break slightly if
                    * something else is outputting that sequence, which is
                    * apparently undocumented; but not too badly.) */
-                  if (debugAutoResize > 0) System.out.println("Turning autoresize on (curses detected)");
+                  if (debugAutoResize > 0) debug("Turning autoresize on (curses detected)");
                   if (!vetoAutoResize) autoResize = true;
                   break;
                   /* unimplemented stuff, fall through */
@@ -1400,7 +1483,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
                   /* 18 - DECPFF - Printer Form Feed Mode -> On */
                   /* 19 - DECPEX - Printer Extent Mode -> Screen */
                 default:
-                  System.out.println("ESC [ ? " + DCEvars[0] + " h, unsupported.");
+                  debug("ESC [ ? " + DCEvars[0] + " h, unsupported.");
                   break;
               }
             }
@@ -1412,23 +1495,23 @@ public class vt320 extends VDUBuffer implements Cloneable {
             // VT (otherwise do not print the line)."
             switch (DCEvars[0]) {
               case 1:
-                if (debugVT > 1)
-                  System.out.println("CSI ? 1 i : Print line containing cursor");
+                if (debug > 1)
+                  debug("CSI ? 1 i : Print line containing cursor");
                 break;
               case 4:
-                if (debugVT > 1)
-                  System.out.println("CSI ? 4 i : Start passthrough printing");
+                if (debug > 1)
+                  debug("CSI ? 4 i : Start passthrough printing");
                 break;
               case 5:
-                if (debugVT > 1)
-                  System.out.println("CSI ? 4 i : Stop passthrough printing");
+                if (debug > 1)
+                  debug("CSI ? 4 i : Stop passthrough printing");
                 break;
             }
             break;
           case 'l':	//DECRST
             /* DEC Mode reset */
-            if (debugVT > 0)
-              System.out.println("ESC [ ? " + DCEvars[0] + " l");
+            if (debug > 0)
+              debug("ESC [ ? " + DCEvars[0] + " l");
             for (int i = 0; i <= DCEvar; i++) {
               switch (DCEvars[i]) {
                 case 1:  /* Application cursor keys */
@@ -1463,30 +1546,31 @@ public class vt320 extends VDUBuffer implements Cloneable {
                   mouserpt = 0;
                   break;
                 case 1049:
-                  if (debugAutoResize > 0) System.out.println("Turning autoresize off (curses ending detected)");
+                  if (debugAutoResize > 0) debug("Turning autoresize off (curses ending detected)");
                   autoResize = false;
                   break;
                 default:
-                  System.out.println("ESC [ ? " + DCEvars[0] + " l, unsupported.");
+                  debug("ESC [ ? " + DCEvars[0] + " l, unsupported.");
                   break;
               }
             }
             break;
           case 'n':
-            if (debugVT > 0)
-              System.out.println("ESC [ ? " + DCEvars[0] + " n");
+            if (debug > 0)
+              debug("ESC [ ? " + DCEvars[0] + " n");
             switch (DCEvars[0]) {
               case 15:
                 /* printer? no printer. */
-                System.out.println("ESC[5n");
+                write((ESC) + "[?13n", false);
+                debug("ESC[5n");
                 break;
               default:
-                System.out.println("ESC [ ? " + DCEvars[0] + " n, unsupported.");
+                debug("ESC [ ? " + DCEvars[0] + " n, unsupported.");
                 break;
             }
             break;
           default:
-            System.out.println("ESC [ ? " + DCEvars[0] + " " + c + ", unsupported.");
+            debug("ESC [ ? " + DCEvars[0] + " " + c + ", unsupported.");
             break;
         }
         break;
@@ -1497,7 +1581,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
             term_state = TSTATE_ESC;
             break;
           default:
-            System.out.println("Unknown character ESC[! character is " + (int) c);
+            debug("Unknown character ESC[! character is " + (int) c);
             break;
         }
         break;
@@ -1505,7 +1589,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
         term_state = TSTATE_DATA;
         switch (c) {
           case 'p':
-            System.out.println("Conformance level: " + DCEvars[0] + " (unsupported)," + DCEvars[1]);
+            debug("Conformance level: " + DCEvars[0] + " (unsupported)," + DCEvars[1]);
             if (DCEvars[0] == 61) {
               output8bit = false;
               break;
@@ -1517,7 +1601,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
             }
             break;
           default:
-            System.out.println("Unknown ESC [...  \"" + c);
+            debug("Unknown ESC [...  \"" + c);
             break;
         }
         break;
@@ -1534,7 +1618,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
           case '7':
           case '8':
           case '9':
-            DCEvars[DCEvar] = DCEvars[DCEvar] * 10 + ((int) c) - 48;
+            DCEvars[DCEvar] = DCEvars[DCEvar] * 10 + (c) - 48;
             term_state = TSTATE_CSI_EQUAL;
             break;
           case ';':
@@ -1547,13 +1631,13 @@ public class vt320 extends VDUBuffer implements Cloneable {
 	  {
 	    int newcolor;
 
-            System.out.println("ESC [ = "+DCEvars[0]+" F");
+            debug("ESC [ = "+DCEvars[0]+" F");
 
             attributes &= ~COLOR_FG;
 	    newcolor =	((DCEvars[0] & 1) << 2)	|
 	    		 (DCEvars[0] & 2)	|
 	    		((DCEvars[0] & 4) >> 2) ;
-            attributes |= (newcolor+1) << COLOR_FG_SHIFT;
+            attributes |= (long)(newcolor+1) << COLOR_FG_SHIFT;
 
 	    break;
 	  }
@@ -1561,21 +1645,25 @@ public class vt320 extends VDUBuffer implements Cloneable {
 	  {
 	    int newcolor;
 
-            System.out.println("ESC [ = "+DCEvars[0]+" G");
+            debug("ESC [ = "+DCEvars[0]+" G");
 
             attributes &= ~COLOR_BG;
 	    newcolor =	((DCEvars[0] & 1) << 2)	|
 	    		 (DCEvars[0] & 2)	|
 	    		((DCEvars[0] & 4) >> 2) ;
-            attributes |= (newcolor+1) << COLOR_BG_SHIFT;
+            attributes |= (long)(newcolor+1) << COLOR_BG_SHIFT;
 	    break;
           }
 
           default:
-            System.out.print("Unknown ESC [ = ");
-	    for (int i=0;i<=DCEvar;i++)
-		System.out.print(DCEvars[i]+",");
-	    System.out.println("" + c);
+            debugStr.append("Unknown ESC [ = ");
+            for (int i=0;i<=DCEvar;i++) {
+              debugStr.append(DCEvars[i])
+                .append(',');
+            }
+            debugStr.append(c);
+            debug(debugStr.toString());
+            debugStr.setLength(0);
             break;
         }
         break;
@@ -1583,19 +1671,19 @@ public class vt320 extends VDUBuffer implements Cloneable {
         term_state = TSTATE_DATA;
         switch (c) {
           case '}':
-            System.out.println("Active Status Display now " + DCEvars[0]);
+            debug("Active Status Display now " + DCEvars[0]);
             statusmode = DCEvars[0];
             break;
             /* bad documentation?
                case '-':
-               System.out.println("Set Status Display now "+DCEvars[0]);
+               debug("Set Status Display now "+DCEvars[0]);
                break;
             */
           case '~':
-            System.out.println("Status Line mode now " + DCEvars[0]);
+            debug("Status Line mode now " + DCEvars[0]);
             break;
           default:
-            System.out.println("UNKNOWN Status Display code " + c + ", with Pn=" + DCEvars[0]);
+            debug("UNKNOWN Status Display code " + c + ", with Pn=" + DCEvars[0]);
             break;
         }
         break;
@@ -1629,7 +1717,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
           case '7':
           case '8':
           case '9':
-            DCEvars[DCEvar] = DCEvars[DCEvar] * 10 + ((int) c) - 48;
+            DCEvars[DCEvar] = DCEvars[DCEvar] * 10 + (c) - 48;
             term_state = TSTATE_CSI;
             break;
           case ';':
@@ -1640,12 +1728,17 @@ public class vt320 extends VDUBuffer implements Cloneable {
           case 'c':/* send primary device attributes */
             /* send (ESC[?61c) */
 
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + " c");
+            String subcode = "";
+            if (terminalID.equals("vt320")) subcode = "63;";
+            if (terminalID.equals("vt220")) subcode = "62;";
+            if (terminalID.equals("vt100")) subcode = "61;";
+            write((ESC) + "[?" + subcode + "1;2c", false);
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + " c");
             break;
           case 'q':
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + " q");
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + " q");
             break;
           case 'g':
             /* used for tabsets */
@@ -1657,8 +1750,8 @@ public class vt320 extends VDUBuffer implements Cloneable {
                 Tabs[C] = 0;
                 break;
             }
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + " g");
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + " g");
             break;
           case 'h':
             switch (DCEvars[0]) {
@@ -1666,15 +1759,15 @@ public class vt320 extends VDUBuffer implements Cloneable {
                 insertmode = 1;
                 break;
               case 20:
-                System.out.println("Setting CRLF to TRUE");
+                debug("Setting CRLF to TRUE");
                 sendcrlf = true;
                 break;
               default:
-                System.out.println("unsupported: ESC [ " + DCEvars[0] + " h");
+                debug("unsupported: ESC [ " + DCEvars[0] + " h");
                 break;
             }
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + " h");
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + " h");
             break;
           case 'i': // Printer Controller mode.
             // "Transparent printing sends all output, except the CSI 4 i
@@ -1685,19 +1778,19 @@ public class vt320 extends VDUBuffer implements Cloneable {
             //  bypassed."
             switch (DCEvars[0]) {
               case 0:
-                if (debugVT > 1)
-                  System.out.println("CSI 0 i:  Print Screen, not implemented.");
+                if (debug > 1)
+                  debug("CSI 0 i:  Print Screen, not implemented.");
                 break;
               case 4:
-                if (debugVT > 1)
-                  System.out.println("CSI 4 i:  Enable Transparent Printing, not implemented.");
+                if (debug > 1)
+                  debug("CSI 4 i:  Enable Transparent Printing, not implemented.");
                 break;
               case 5:
-                if (debugVT > 1)
-                  System.out.println("CSI 4/5 i:  Disable Transparent Printing, not implemented.");
+                if (debug > 1)
+                  debug("CSI 4/5 i:  Disable Transparent Printing, not implemented.");
                 break;
               default:
-                System.out.println("ESC [ " + DCEvars[0] + " i, unimplemented!");
+                debug("ESC [ " + DCEvars[0] + " i, unimplemented!");
             }
             break;
           case 'l':
@@ -1706,11 +1799,11 @@ public class vt320 extends VDUBuffer implements Cloneable {
                 insertmode = 0;
                 break;
               case 20:
-                System.out.println("Setting CRLF to FALSE");
+                debug("Setting CRLF to FALSE");
                 sendcrlf = false;
                 break;
               default:
-                System.out.println("ESC [ " + DCEvars[0] + " l, unimplemented!");
+                debug("ESC [ " + DCEvars[0] + " l, unimplemented!");
                 break;
             }
             break;
@@ -1730,8 +1823,8 @@ public class vt320 extends VDUBuffer implements Cloneable {
                 R -= DCEvars[0];
               if (R < limit)
                 R = limit;
-              if (debugVT > 1)
-                System.out.println("ESC [ " + DCEvars[0] + " A");
+              if (debug > 1)
+                debug("ESC [ " + DCEvars[0] + " A");
               break;
             }
           case 'B':	// CUD
@@ -1750,18 +1843,18 @@ public class vt320 extends VDUBuffer implements Cloneable {
                 R += DCEvars[0];
               if (R > limit) {
                 if (limit == rows-1 && autoResize) {
-                  if (debugAutoResize > 0) System.out.println("Making window taller (CUD)");
+                  if (debugAutoResize > 0) debug("Making window taller (CUD)");
                   this.setWindowSize(columns, R+1);
                   rows = R+1;
                 } else
                   R = limit;
               }
               else {
-                if (debugVT > 2) System.out.println("Not limited.");
+                if (debug > 2) debug("Not limited.");
               }
-              if (debugVT > 2) System.out.println("to: " + R);
-              if (debugVT > 1)
-                System.out.println("ESC [ " + DCEvars[0] + " B (at C=" + C + ")");
+              if (debug > 2) debug("to: " + R);
+              if (debug > 1)
+                debug("ESC [ " + DCEvars[0] + " B (at C=" + C + ")");
               break;
             }
           case 'C':
@@ -1771,19 +1864,19 @@ public class vt320 extends VDUBuffer implements Cloneable {
               C += DCEvars[0];
             if (C > columns - 1) {
               if (autoResize) {
-                  if (debugAutoResize > 0) System.out.println("Making window wider (CSI C)");
+                  if (debugAutoResize > 0) debug("Making window wider (CSI C)");
                   this.setWindowSize(C+1, rows);
                   columns = C+1;
               } else
                   C = columns - 1;
             }
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + " C");
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + " C");
             break;
           case 'd': // CVA
             R = DCEvars[0] - 1;
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + " d");
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + " d");
             break;
           case 'D':
             if (DCEvars[0] == 0)
@@ -1791,8 +1884,8 @@ public class vt320 extends VDUBuffer implements Cloneable {
             else
               C -= DCEvars[0];
             if (C < 0) C = 0;
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + " D");
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + " D");
             break;
           case 'r': // DECSTBM
             if (DCEvar > 0)   //  Ray:  Any argument is optional
@@ -1813,19 +1906,19 @@ public class vt320 extends VDUBuffer implements Cloneable {
             }
             setTopMargin(R);
             _SetCursor(0, 0);
-            if (debugVT > 1)
-              System.out.println("ESC [" + DCEvars[0] + " ; " + DCEvars[1] + " r");
+            if (debug > 1)
+              debug("ESC [" + DCEvars[0] + " ; " + DCEvars[1] + " r");
             break;
           case 'G':  /* CUP  / cursor absolute column */
             C = DCEvars[0] - 1;
-            if (debugVT > 1) System.out.println("ESC [ " + DCEvars[0] + " G");
+            if (debug > 1) debug("ESC [ " + DCEvars[0] + " G");
             break;
           case 'H':  /* CUP  / cursor position */
             /* gets 2 arguments */
             _SetCursor(DCEvars[0] - 1, DCEvars[1] - 1);
-            if (debugVT > 2) {
-              System.out.println("ESC [ " + DCEvars[0] + ";" + DCEvars[1] + " H, moveoutsidemargins " + moveoutsidemargins);
-              System.out.println("	-> R now " + R + ", C now " + C);
+            if (debug > 2) {
+              debug("ESC [ " + DCEvars[0] + ";" + DCEvars[1] + " H, moveoutsidemargins " + moveoutsidemargins);
+              debug("	-> R now " + R + ", C now " + C);
             }
             break;
           case 'f':  /* move cursor 2 */
@@ -1834,8 +1927,8 @@ public class vt320 extends VDUBuffer implements Cloneable {
             C = DCEvars[1] - 1;
             if (C < 0) C = 0;
             if (R < 0) R = 0;
-            if (debugVT > 2)
-              System.out.println("ESC [ " + DCEvars[0] + ";" + DCEvars[1] + " f");
+            if (debug > 2)
+              debug("ESC [ " + DCEvars[0] + ";" + DCEvars[1] + " f");
             break;
           case 'S': /* ind aka 'scroll forward' */
             if (DCEvars[0] == 0)
@@ -1849,8 +1942,8 @@ public class vt320 extends VDUBuffer implements Cloneable {
               insertLine(R, SCROLL_DOWN);
             else
               insertLine(R, DCEvars[0], SCROLL_DOWN);
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + "" + (c) + " (at R " + R + ")");
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + "" + (c) + " (at R " + R + ")");
             break;
           case 'T': /* 'ri' aka scroll backward */
             if (DCEvars[0] == 0)
@@ -1859,8 +1952,8 @@ public class vt320 extends VDUBuffer implements Cloneable {
               insertLine(0, DCEvars[0], SCROLL_DOWN);
             break;
           case 'M':
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + "" + (c) + " at R=" + R);
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + "" + (c) + " at R=" + R);
             if (DCEvars[0] == 0)
               deleteLine(R);
             else
@@ -1868,8 +1961,8 @@ public class vt320 extends VDUBuffer implements Cloneable {
                 deleteLine(R);
             break;
           case 'K':
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + " K");
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + " K");
             /* clear in line */
             switch (DCEvars[0]) {
               case 6: /* 97801 uses ESC[6K for delete to end of line */
@@ -1905,20 +1998,21 @@ public class vt320 extends VDUBuffer implements Cloneable {
                 deleteArea(0, 0, columns, rows, attributes);
                 break;
             }
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + " J");
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + " J");
             break;
           case '@':
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + " @");
+            if (DCEvars[0] == 0) DCEvars[0] = 1;
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + " @");
             for (int i = 0; i < DCEvars[0]; i++)
               insertChar(C, R, ' ', attributes);
             break;
           case 'X':
             {
               int toerase = DCEvars[0];
-              if (debugVT > 1)
-                System.out.println("ESC [ " + DCEvars[0] + " X, C=" + C + ",R=" + R);
+              if (debug > 1)
+                debug("ESC [ " + DCEvars[0] + " X, C=" + C + ",R=" + R);
               if (toerase == 0)
                 toerase = 1;
               if (toerase + C > columns)
@@ -1928,8 +2022,8 @@ public class vt320 extends VDUBuffer implements Cloneable {
               break;
             }
           case 'P':
-            if (debugVT > 1)
-              System.out.println("ESC [ " + DCEvars[0] + " P, C=" + C + ",R=" + R);
+            if (debug > 1)
+              debug("ESC [ " + DCEvars[0] + " P, C=" + C + ",R=" + R);
             if (DCEvars[0] == 0) DCEvars[0] = 1;
             for (int i = 0; i < DCEvars[0]; i++)
               deleteChar(C, R);
@@ -1937,19 +2031,21 @@ public class vt320 extends VDUBuffer implements Cloneable {
           case 'n':
             switch (DCEvars[0]) {
               case 5: /* malfunction? No malfunction. */
-                if (debugVT > 1)
-                  System.out.println("ESC[5n");
+                writeSpecial((ESC) + "[0n");
+                if (debug > 1)
+                  debug("ESC[5n");
                 break;
               case 6:
                 // DO NOT offset R and C by 1! (checked against /usr/X11R6/bin/resize
                 // FIXME check again.
                 // FIXME: but vttest thinks different???
-                if (debugVT > 1)
-                  System.out.println("ESC[6n");
+                writeSpecial((ESC) + "[" + R + ";" + C + "R");
+                if (debug > 1)
+                  debug("ESC[6n");
                 break;
               default:
-                if (debugVT > 0)
-                  System.out.println("ESC [ " + DCEvars[0] + " n??");
+                if (debug > 0)
+                  debug("ESC [ " + DCEvars[0] + " n??");
                 break;
             }
             break;
@@ -1957,7 +2053,7 @@ public class vt320 extends VDUBuffer implements Cloneable {
             Sc = C;
             Sr = R;
             Sa = attributes;
-            System.out.println("ESC[s");
+            debug("ESC[s");
             break;
           case 't': /* some terminals respond to this by setting the screen size */
             if (DCEvars[0] == 8 ){
@@ -1966,21 +2062,21 @@ public class vt320 extends VDUBuffer implements Cloneable {
               setScreenSize(DCEvars[2],DCEvars[1]);
               vetoAutoResize = true;
               autoResize = false;
-              if (debugAutoResize > 0) System.out.println("Vetoing autoresize (explicit screen size set detected)");
+              if (debugAutoResize > 0) debug("Vetoing autoresize (explicit screen size set detected)");
             } else {
-              System.out.println("Unhandled ESC [ t");
+              debug("Unhandled ESC [ t");
             }
             break;
           case 'u': /* DECRC - restore cursor */
             C = Sc;
             R = Sr;
             attributes = Sa;
-            if (debugVT > 3)
-              System.out.println("ESC[u");
+            if (debug > 3)
+              debug("ESC[u");
             break;
           case 'm':  /* attributes as color, bold , blink,*/
-            if (debugVT > 3)
-              System.out.print("ESC [ ");
+            if (debug > 3)
+              debug("ESC [ ");
             if (DCEvar == 0 && DCEvars[0] == 0)
               attributes = 0;
             for (int i = 0; i <= DCEvar; i++) {
@@ -2008,14 +2104,17 @@ public class vt320 extends VDUBuffer implements Cloneable {
                     if ((ncolor & 8) == 8)
                       attributes |= BOLD;
                     ncolor = ((ncolor & 1) << 2) | (ncolor & 2) | ((ncolor & 4) >> 2);
-                    attributes |= ((ncolor) + 1) << COLOR_FG_SHIFT;
+                    attributes |= (long)((ncolor) + 1) << COLOR_FG_SHIFT;
                     ncolor = DCEvars[i + 2];
                     ncolor = ((ncolor & 1) << 2) | (ncolor & 2) | ((ncolor & 4) >> 2);
-                    attributes |= ((ncolor) + 1) << COLOR_BG_SHIFT;
+                    attributes |= (long)((ncolor) + 1) << COLOR_BG_SHIFT;
                     i += 2;
                   } else {
                     attributes |= LOW;
                   }
+                  break;
+                case 3: /* italics */
+                  attributes |= INVERT;
                   break;
                 case 4:
                   attributes |= UNDERLINE;
@@ -2044,6 +2143,9 @@ public class vt320 extends VDUBuffer implements Cloneable {
                 case 21: /* normal intensity */
                   attributes &= ~(LOW | BOLD);
                   break;
+                case 23: /* italics off */
+                  attributes &= ~INVERT;
+                  break;
                 case 25: /* blinking off */
                   break;
                 case 27:
@@ -2067,7 +2169,21 @@ public class vt320 extends VDUBuffer implements Cloneable {
                 case 36:
                 case 37:
                   attributes &= ~COLOR_FG;
-                  attributes |= ((DCEvars[i] - 30) + 1) << COLOR_FG_SHIFT;
+                  attributes |= (long)((DCEvars[i] - 30) + 1)<< COLOR_FG_SHIFT;
+                  break;
+                case 38:
+                  if (DCEvars[i+1] == 5) {
+                    attributes &= ~COLOR_FG;
+                    attributes |= (long)((DCEvars[i + 2]) + 1) << COLOR_FG_SHIFT;
+                    i += 2;
+                  } else if (DCEvars[i+1] == 2) {
+                    attributes &= ~COLOR_FG;
+                    int newcolor = DCEvars[i + 2] << COLOR_RED_SHIFT |
+                                   DCEvars[i + 3] << COLOR_GREEN_SHIFT |
+                                   DCEvars[i + 4] << COLOR_BLUE_SHIFT;
+                    attributes |= (long)(newcolor + 257) << COLOR_FG_SHIFT;
+                    i += 4;
+                  }
                   break;
                 case 39:
                   attributes &= ~COLOR_FG;
@@ -2081,24 +2197,68 @@ public class vt320 extends VDUBuffer implements Cloneable {
                 case 46:
                 case 47:
                   attributes &= ~COLOR_BG;
-                  attributes |= ((DCEvars[i] - 40) + 1) << COLOR_BG_SHIFT;
+                  attributes |= (long)((DCEvars[i] - 40) + 1) << COLOR_BG_SHIFT;
+                  break;
+                case 48:
+                  if (DCEvars[i+1] == 5) {
+                    attributes &= ~COLOR_BG;
+                    attributes |= (long)(DCEvars[i + 2] + 1) << COLOR_BG_SHIFT;
+                    i += 2;
+                  } else if (DCEvars[i+1] == 2) {
+                    attributes &= ~COLOR_BG;
+                    int newcolor = DCEvars[i + 2] << COLOR_RED_SHIFT |
+                                   DCEvars[i + 3] << COLOR_GREEN_SHIFT |
+                                   DCEvars[i + 4] << COLOR_BLUE_SHIFT;
+                    attributes |= (long)(newcolor + 257) << COLOR_BG_SHIFT;
+                    i += 4;
+                  }
                   break;
                 case 49:
                   attributes &= ~COLOR_BG;
                   break;
+                case 90:
+                case 91:
+                case 92:
+                case 93:
+                case 94:
+                case 95:
+                case 96:
+                case 97:
+                  attributes &= ~COLOR_FG;
+                  attributes |= (long)((DCEvars[i] - 82) + 1) << COLOR_FG_SHIFT;
+                  break;
+                case 100:
+                case 101:
+                case 102:
+                case 103:
+                case 104:
+                case 105:
+                case 106:
+                case 107:
+                  attributes &= ~COLOR_BG;
+                  attributes |= (long)((DCEvars[i] - 92) + 1) << COLOR_BG_SHIFT;
+                  break;
 
                 default:
-                  System.out.println("ESC [ " + DCEvars[i] + " m unknown...");
+                  debugStr.append("ESC [ ")
+                    .append(DCEvars[i])
+                    .append(" m unknown...");
+                  debug(debugStr.toString());
+                  debugStr.setLength(0);
                   break;
               }
-              if (debugVT > 3)
-                System.out.print("" + DCEvars[i] + ";");
+              if (debug > 3) {
+                debugStr.append(DCEvars[i])
+                  .append(';');
+                debug(debugStr.toString());
+                debugStr.setLength(0);
+              }
             }
-            if (debugVT > 3)
+            if (debug > 3)
               System.out.print(" (attributes = " + attributes + ")m \n");
             break;
           default:
-            System.out.println("ESC [ unknown letter:" + c + " (" + ((int) c) + ")");
+            debug("ESC [ unknown letter:" + c + " (" + ((int) c) + ")");
             break;
         }
         break;
@@ -2108,12 +2268,12 @@ public class vt320 extends VDUBuffer implements Cloneable {
     }
     if (autoResize) {
         if (C >= columns && !wrappedOnThisCharacter && term_state == TSTATE_DATA) {
-            if (debugAutoResize > 0) System.out.println("Making window wider (cursor beyond edge of screen)");
+            if (debugAutoResize > 0) debug("Making window wider (cursor beyond edge of screen)");
             columns = C+1;
             this.setScreenSize(columns, rows);
         }
         if (R >= rows) {
-            if (debugAutoResize > 0) System.out.println("Making window taller (cursor beyond edge of screen)");
+            if (debugAutoResize > 0) debug("Making window taller (cursor beyond edge of screen)");
             rows = R+1;
             this.setScreenSize(columns, rows);
         }
@@ -2136,8 +2296,12 @@ public class vt320 extends VDUBuffer implements Cloneable {
     gx[1] = '0';
     gx[2] = 'B';
     gx[3] = 'B';
+
     gl = 0;  // default GL to G0
     gr = 1;  // default GR to G1
+
+    onegl = -1; // Single shift override
+
     /* reset tabs */
     int nw = getColumns();
     if (nw < 132) nw = 132;

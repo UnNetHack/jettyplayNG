@@ -61,7 +61,7 @@ public class VDURenderer {
     private static boolean fontFamilyExists(String family) {
         return (new Font(family,Font.PLAIN,1).getFamily(Locale.ROOT).equals(family));
     }
-    
+
     /**
      *  Find a sensible font for displaying ttyrecs with, by looking through
      *  a list of names of monospaced fonts.
@@ -113,25 +113,287 @@ public class VDURenderer {
     private int backingStoreColumns = 0;*/
     private boolean[] update;
     /** A list of colors used for representation of the display */
-    private Color[] color = {new Color(0, 0, 0),
-                             new Color(175, 0, 0),
-                             new Color(0, 135, 0),
-                             new Color(175, 95, 0),
-                             new Color(0, 0, 175),
-                             new Color(135, 0, 135),
-                             new Color(0, 175, 135),
-                             new Color(175, 175, 175),
-                             null,
-                             null,
-                             new Color(255, 255, 255),
-                             new Color(95, 95, 95),
-                             new Color(255, 95, 0),
-                             new Color(0, 255, 0),
-                             new Color(255, 255, 0),
-                             new Color(135, 95, 255),
-                             new Color(255, 95, 175),
-                             new Color(0, 215, 255),
-                             new Color(255, 255, 255)};
+    private Color[] color = {
+        new Color(0, 0, 0),
+        new Color(175, 0, 0),
+        new Color(0, 135, 0),
+        new Color(175, 95, 0),
+        new Color(0, 0, 175),
+        new Color(135, 0, 135),
+        new Color(0, 175, 135),
+        new Color(175, 175, 175),
+        null,
+        null,
+        new Color(255, 255, 255),
+        new Color(95, 95, 95),
+        new Color(255, 95, 0),
+        new Color(0, 255, 0),
+        new Color(255, 255, 0),
+        new Color(135, 95, 255),
+        new Color(255, 95, 175),
+        new Color(0, 215, 255),
+        new Color(255, 255, 255)
+    };
+
+    /** The 256 color palette */
+    private Color[] xterm_256_colors = {
+        new Color(0x000000),
+        new Color(0x800000),
+        new Color(0x008000),
+        new Color(0x808000),
+        new Color(0x000080),
+        new Color(0x800080),
+        new Color(0x008080),
+        new Color(0xc0c0c0),
+        new Color(0x808080),
+        new Color(0xff0000),
+        new Color(0x00ff00),
+        new Color(0xffff00),
+        new Color(0x0000ff),
+        new Color(0xff00ff),
+        new Color(0x00ffff),
+        new Color(0xffffff),
+        new Color(0x000000),
+        new Color(0x00005f),
+        new Color(0x000087),
+        new Color(0x0000af),
+        new Color(0x0000d7),
+        new Color(0x0000ff),
+        new Color(0x005f00),
+        new Color(0x005f5f),
+        new Color(0x005f87),
+        new Color(0x005faf),
+        new Color(0x005fd7),
+        new Color(0x005fff),
+        new Color(0x008700),
+        new Color(0x00875f),
+        new Color(0x008787),
+        new Color(0x0087af),
+        new Color(0x0087d7),
+        new Color(0x0087ff),
+        new Color(0x00af00),
+        new Color(0x00af5f),
+        new Color(0x00af87),
+        new Color(0x00afaf),
+        new Color(0x00afd7),
+        new Color(0x00afff),
+        new Color(0x00d700),
+        new Color(0x00d75f),
+        new Color(0x00d787),
+        new Color(0x00d7af),
+        new Color(0x00d7d7),
+        new Color(0x00d7ff),
+        new Color(0x00ff00),
+        new Color(0x00ff5f),
+        new Color(0x00ff87),
+        new Color(0x00ffaf),
+        new Color(0x00ffd7),
+        new Color(0x00ffff),
+        new Color(0x5f0000),
+        new Color(0x5f005f),
+        new Color(0x5f0087),
+        new Color(0x5f00af),
+        new Color(0x5f00d7),
+        new Color(0x5f00ff),
+        new Color(0x5f5f00),
+        new Color(0x5f5f5f),
+        new Color(0x5f5f87),
+        new Color(0x5f5faf),
+        new Color(0x5f5fd7),
+        new Color(0x5f5fff),
+        new Color(0x5f8700),
+        new Color(0x5f875f),
+        new Color(0x5f8787),
+        new Color(0x5f87af),
+        new Color(0x5f87d7),
+        new Color(0x5f87ff),
+        new Color(0x5faf00),
+        new Color(0x5faf5f),
+        new Color(0x5faf87),
+        new Color(0x5fafaf),
+        new Color(0x5fafd7),
+        new Color(0x5fafff),
+        new Color(0x5fd700),
+        new Color(0x5fd75f),
+        new Color(0x5fd787),
+        new Color(0x5fd7af),
+        new Color(0x5fd7d7),
+        new Color(0x5fd7ff),
+        new Color(0x5fff00),
+        new Color(0x5fff5f),
+        new Color(0x5fff87),
+        new Color(0x5fffaf),
+        new Color(0x5fffd7),
+        new Color(0x5fffff),
+        new Color(0x870000),
+        new Color(0x87005f),
+        new Color(0x870087),
+        new Color(0x8700af),
+        new Color(0x8700d7),
+        new Color(0x8700ff),
+        new Color(0x875f00),
+        new Color(0x875f5f),
+        new Color(0x875f87),
+        new Color(0x875faf),
+        new Color(0x875fd7),
+        new Color(0x875fff),
+        new Color(0x878700),
+        new Color(0x87875f),
+        new Color(0x878787),
+        new Color(0x8787af),
+        new Color(0x8787d7),
+        new Color(0x8787ff),
+        new Color(0x87af00),
+        new Color(0x87af5f),
+        new Color(0x87af87),
+        new Color(0x87afaf),
+        new Color(0x87afd7),
+        new Color(0x87afff),
+        new Color(0x87d700),
+        new Color(0x87d75f),
+        new Color(0x87d787),
+        new Color(0x87d7af),
+        new Color(0x87d7d7),
+        new Color(0x87d7ff),
+        new Color(0x87ff00),
+        new Color(0x87ff5f),
+        new Color(0x87ff87),
+        new Color(0x87ffaf),
+        new Color(0x87ffd7),
+        new Color(0x87ffff),
+        new Color(0xaf0000),
+        new Color(0xaf005f),
+        new Color(0xaf0087),
+        new Color(0xaf00af),
+        new Color(0xaf00d7),
+        new Color(0xaf00ff),
+        new Color(0xaf5f00),
+        new Color(0xaf5f5f),
+        new Color(0xaf5f87),
+        new Color(0xaf5faf),
+        new Color(0xaf5fd7),
+        new Color(0xaf5fff),
+        new Color(0xaf8700),
+        new Color(0xaf875f),
+        new Color(0xaf8787),
+        new Color(0xaf87af),
+        new Color(0xaf87d7),
+        new Color(0xaf87ff),
+        new Color(0xafaf00),
+        new Color(0xafaf5f),
+        new Color(0xafaf87),
+        new Color(0xafafaf),
+        new Color(0xafafd7),
+        new Color(0xafafff),
+        new Color(0xafd700),
+        new Color(0xafd75f),
+        new Color(0xafd787),
+        new Color(0xafd7af),
+        new Color(0xafd7d7),
+        new Color(0xafd7ff),
+        new Color(0xafff00),
+        new Color(0xafff5f),
+        new Color(0xafff87),
+        new Color(0xafffaf),
+        new Color(0xafffd7),
+        new Color(0xafffff),
+        new Color(0xd70000),
+        new Color(0xd7005f),
+        new Color(0xd70087),
+        new Color(0xd700af),
+        new Color(0xd700d7),
+        new Color(0xd700ff),
+        new Color(0xd75f00),
+        new Color(0xd75f5f),
+        new Color(0xd75f87),
+        new Color(0xd75faf),
+        new Color(0xd75fd7),
+        new Color(0xd75fff),
+        new Color(0xd78700),
+        new Color(0xd7875f),
+        new Color(0xd78787),
+        new Color(0xd787af),
+        new Color(0xd787d7),
+        new Color(0xd787ff),
+        new Color(0xd7af00),
+        new Color(0xd7af5f),
+        new Color(0xd7af87),
+        new Color(0xd7afaf),
+        new Color(0xd7afd7),
+        new Color(0xd7afff),
+        new Color(0xd7d700),
+        new Color(0xd7d75f),
+        new Color(0xd7d787),
+        new Color(0xd7d7af),
+        new Color(0xd7d7d7),
+        new Color(0xd7d7ff),
+        new Color(0xd7ff00),
+        new Color(0xd7ff5f),
+        new Color(0xd7ff87),
+        new Color(0xd7ffaf),
+        new Color(0xd7ffd7),
+        new Color(0xd7ffff),
+        new Color(0xff0000),
+        new Color(0xff005f),
+        new Color(0xff0087),
+        new Color(0xff00af),
+        new Color(0xff00d7),
+        new Color(0xff00ff),
+        new Color(0xff5f00),
+        new Color(0xff5f5f),
+        new Color(0xff5f87),
+        new Color(0xff5faf),
+        new Color(0xff5fd7),
+        new Color(0xff5fff),
+        new Color(0xff8700),
+        new Color(0xff875f),
+        new Color(0xff8787),
+        new Color(0xff87af),
+        new Color(0xff87d7),
+        new Color(0xff87ff),
+        new Color(0xffaf00),
+        new Color(0xffaf5f),
+        new Color(0xffaf87),
+        new Color(0xffafaf),
+        new Color(0xffafd7),
+        new Color(0xffafff),
+        new Color(0xffd700),
+        new Color(0xffd75f),
+        new Color(0xffd787),
+        new Color(0xffd7af),
+        new Color(0xffd7d7),
+        new Color(0xffd7ff),
+        new Color(0xffff00),
+        new Color(0xffff5f),
+        new Color(0xffff87),
+        new Color(0xffffaf),
+        new Color(0xffffd7),
+        new Color(0xffffff),
+        new Color(0x080808),
+        new Color(0x121212),
+        new Color(0x1c1c1c),
+        new Color(0x262626),
+        new Color(0x303030),
+        new Color(0x3a3a3a),
+        new Color(0x444444),
+        new Color(0x4e4e4e),
+        new Color(0x585858),
+        new Color(0x626262),
+        new Color(0x6c6c6c),
+        new Color(0x767676),
+        new Color(0x808080),
+        new Color(0x8a8a8a),
+        new Color(0x949494),
+        new Color(0x9e9e9e),
+        new Color(0xa8a8a8),
+        new Color(0xb2b2b2),
+        new Color(0xbcbcbc),
+        new Color(0xc6c6c6),
+        new Color(0xd0d0d0),
+        new Color(0xdadada),
+        new Color(0xe4e4e4),
+        new Color(0xeeeeee),
+    };
 
     /**
      * Creates a new VDU renderer with a default font.
@@ -349,8 +611,8 @@ public class VDURenderer {
      * @return If renderHTML is true, an HTML representation of the VDU buffer.
      * Otherwise, an arbitrary string (which may or may not vaguely resemble
      * HTML).
-     * @see #asHTML() 
-     * @see #redraw(java.awt.Graphics, int, int) 
+     * @see #asHTML()
+     * @see #redraw(java.awt.Graphics, int, int)
      */
     protected String redraw(Graphics g, boolean renderHTML, int drawWidth, int drawHeight) {
         if (g == null && !renderHTML) {
@@ -395,14 +657,24 @@ public class VDURenderer {
             }
             for (int c = 0; c < buffer.width; c++) {
                 int addr = 0;
-                int currAttr = buffer.charAttributes[buffer.windowBase + l][c];
+                long currAttr = buffer.charAttributes[buffer.windowBase + l][c];
                 fg = darken(color[COLOR_FG_STD]);
                 bg = darken(color[COLOR_BG_STD]);
                 if ((currAttr & VDUBuffer.COLOR_FG) != 0) {
-                    fg = color[((currAttr & VDUBuffer.COLOR_FG) >> VDUBuffer.COLOR_FG_SHIFT) - 1];
+                    int fgColor = (int)((currAttr & VDUBuffer.COLOR_FG) >> VDUBuffer.COLOR_FG_SHIFT) - 1;
+                    if (fgColor < 8) {
+                        fg = color[fgColor];
+                    } else if (fgColor < 256) {
+                        fg = xterm_256_colors[fgColor];
+                    }
                 }
                 if ((currAttr & VDUBuffer.COLOR_BG) != 0) {
-                    bg = darken(color[((currAttr & VDUBuffer.COLOR_BG) >> VDUBuffer.COLOR_BG_SHIFT) - 1]);
+                    int bgColor = (int)((currAttr & VDUBuffer.COLOR_BG) >> VDUBuffer.COLOR_BG_SHIFT) - 1;
+                    if (bgColor < 8) {
+                        bg = darken(color[bgColor]);
+                    } else if (bgColor < 256) {
+                        bg = darken(xterm_256_colors[bgColor]);
+                    }
                 }
                 if ((currAttr & VDUBuffer.BOLD) != 0) {
                     // g.setFont(new Font(normalFont.getName(), Font.BOLD, normalFont.getSize()));
@@ -411,7 +683,10 @@ public class VDURenderer {
                     if (null != color[COLOR_BOLD]) {
                         fg = color[COLOR_BOLD];
                     } else {
-                        fg = color[((currAttr & VDUBuffer.COLOR_FG) >> VDUBuffer.COLOR_FG_SHIFT) - 1 + COLOR_FIRST_BOLD_REPLACEMENT];
+                        int fgColor = (int)((currAttr & VDUBuffer.COLOR_FG) >> VDUBuffer.COLOR_FG_SHIFT) - 1;
+                        if (fgColor < 8 && (currAttr & VDUBuffer.BOLD) != 0) {
+                            fg = color[fgColor + COLOR_FIRST_BOLD_REPLACEMENT];
+                        }
                     }
                 } else if (!renderHTML) {
                     g.setFont(normalFont);
@@ -521,7 +796,7 @@ public class VDURenderer {
      * This is designed to be used as part of a print chain; that is, it
      * can be wrapped by other .print methods specified via printchain.
      * @param g The graphics to print on.
-     * @param printchain The 
+     * @param printchain The
      */
     public void print(Graphics g, Printable printchain) {
         if (debug > 0) {
@@ -659,7 +934,7 @@ public class VDURenderer {
     public int getCharWidth() {
         return charWidth;
     }
-    
+
     /**
      * Sets whether this renderer may render in bold or not. (If not, bold is
      * rendered entirely with color.)

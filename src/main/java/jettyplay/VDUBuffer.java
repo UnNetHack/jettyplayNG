@@ -38,7 +38,7 @@ import java.util.regex.Pattern;
  * all methods to manipulate the buffer that stores characters and their
  * attributes as well as the regions displayed.
  *
- * @author Matthias L. Jugel, Marcus Mei�ner
+ * @author Matthias L. Jugel, Marcus Meißner
  */
 public class VDUBuffer implements Cloneable {
 
@@ -47,7 +47,7 @@ public class VDUBuffer implements Cloneable {
 
   protected int height, width;                          /* rows and columns */
   char[][] charArray;                            /* contains the characters */
-  short[][] charAttributes;                       /* contains character attrs */
+  long[][] charAttributes;                       /* contains character attrs */
   private boolean[] needLazyCloning;            /* which lines need cloning */
   protected int bufSize;
   protected int maxBufSize;                                  /* buffer sizes */
@@ -67,29 +67,51 @@ public class VDUBuffer implements Cloneable {
   /** Scroll down when inserting a line. */
   public final static boolean SCROLL_DOWN = true;
 
+  /*  Attributes bit-field usage:
+   *
+   *  8421 8421 8421 8421 8421 8421 8421 8421  8421 8421 8421 8421 8421 8421 8421 8421
+   *  |||| |||| |||| |||| |||| |||| |||| ||||  |||| |||| |||| |||| |||| |||| |||| |||`- Bold
+   *  |||| |||| |||| |||| |||| |||| |||| ||||  |||| |||| |||| |||| |||| |||| |||| ||`-- Underline
+   *  |||| |||| |||| |||| |||| |||| |||| ||||  |||| |||| |||| |||| |||| |||| |||| |`--- Invert
+   *  |||| |||| |||| |||| |||| |||| |||| ||||  |||| |||| |||| |||| |||| |||| |||| `---- Low
+   *  |||| |||| |||| |||| |||| |||| |||| ||||  |||| |||| |||| |||| |||| |||| |||`------ Invisible
+   *  |||| |||| |||| |||| |||| |||| |||| ||||  |||| |||| |||| |||| |||| |||| ||`------- Fullwidth character
+   *  |||| |||| |||| |||| |||| |||| |||| ||||  |`++-++++-++++-++++-++++-++++-++-------- Foreground Color
+   *  |||| |||| `+++-++++-++++-++++-++++-++++--+--------------------------------------- Background Color
+   *  `+++-++++------------------------------------------------------------------------ Reserved for future use
+   */
+
   /** Make character normal. */
-  public final static short NORMAL = 0x00;
+  public final static long NORMAL = 0x00;
   /** Make character bold. */
-  public final static short BOLD = 0x01;
+  public final static long BOLD = 0x01;
   /** Underline character. */
-  public final static short UNDERLINE = 0x02;
+  public final static long UNDERLINE = 0x02;
   /** Invert character. */
-  public final static short INVERT = 0x04;
+  public final static long INVERT = 0x04;
   /** Lower intensity character. */
-  public final static short LOW = 0x08;
+  public final static long LOW = 0x08;
   /** Invisible character. */
-  public final static short INVISIBLE = 0x10;
+  public final static long INVISIBLE = 0x10;
+  /** Unicode full-width character (CJK, et al.) */
+  public final static long FULLWIDTH = 0x20;
 
   /** how much to left shift the foreground color */
-  public final static short COLOR_FG_SHIFT = 5;
+  public final static int COLOR_FG_SHIFT = 6;
   /** how much to left shift the background color */
-  public final static short COLOR_BG_SHIFT = 9;
+  public final static int COLOR_BG_SHIFT = 31;
   /** color mask */
-  public final static short COLOR = 0x1fe0;
+  public final static long COLOR = 0xffffffffffffc0L;    /* 0000 0000 1111 1111 1111 1111 1111 1111  1111 1111 1111 1111 1111 1111 1100 0000 */
   /** foreground color mask */
-  public final static short COLOR_FG = 0x1e0;
+  public final static long COLOR_FG = 0x7fffffc0L;       /* 0000 0000 0000 0000 0000 0000 0000 0000  0111 1111 1111 1111 1111 1111 1100 0000 */
   /** background color mask */
-  public final static short COLOR_BG = 0x1e00;
+  public final static long COLOR_BG = 0xffffff80000000L; /* 0000 0000 1111 1111 1111 1111 1111 1111  1000 0000 0000 0000 0000 0000 0000 0000 */
+  /** how much to left shift the red component */
+  public final static int COLOR_RED_SHIFT = 16;
+  /** how much to left shift the green component */
+  public final static int COLOR_GREEN_SHIFT = 8;
+  /** how much to left shift the blue component */
+  public final static int COLOR_BLUE_SHIFT = 0;
 
   /**
    * Create a new video display buffer with the passed width and height in
@@ -143,7 +165,7 @@ public class VDUBuffer implements Cloneable {
    * @see #redraw
    */
 
-  public void putChar(int c, int l, char ch, short attributes) {
+  public void putChar(int c, int l, char ch, long attributes) {
     c = checkBounds(c, 0, width - 1);
     l = checkBounds(l, 0, height - 1);
     cloneCheck(screenBase + l);
@@ -171,7 +193,7 @@ public class VDUBuffer implements Cloneable {
    * @return The attributes at that position.
    * @see #putChar
    */
-  public int getAttributes(int c, int l) {
+  public long getAttributes(int c, int l) {
     c = checkBounds(c, 0, width - 1);
     l = checkBounds(l, 0, height - 1);
     return charAttributes[screenBase + l][c];
@@ -195,7 +217,7 @@ public class VDUBuffer implements Cloneable {
    * @see #deleteChar
    * @see #redraw
    */
-  public void insertChar(int c, int l, char ch, short attributes) {
+  public void insertChar(int c, int l, char ch, long attributes) {
     c = checkBounds(c, 0, width - 1);
     l = checkBounds(l, 0, height - 1);
     System.arraycopy(charArray[screenBase + l], c,
@@ -267,7 +289,7 @@ public class VDUBuffer implements Cloneable {
    * @see #deleteLine
    * @see #redraw
    */
-  public void putString(int c, int l, String s, short attributes) {
+  public void putString(int c, int l, String s, long attributes) {
     for (int i = 0; i < s.length() && c + i < width; i++)
       putChar(c + i, l, s.charAt(i), attributes);
   }
@@ -328,7 +350,7 @@ public class VDUBuffer implements Cloneable {
     l = checkBounds(l, 0, height - 1);
 
     char cbuf[][] = null;
-    short abuf[][] = null;
+    long abuf[][] = null;
     int offset = 0;
     int oldBase = screenBase;
 
@@ -347,8 +369,10 @@ public class VDUBuffer implements Cloneable {
 
     if (scrollDown) {
       if (n > (bottom - top)) n = (bottom - top);
-      cbuf = new char[bottom - l - (n - 1)][width];
-      abuf = new short[bottom - l - (n - 1)][width];
+      int size = bottom - l - (n - 1);
+      if (size < 0) size = 0;
+      cbuf = new char[size][width];
+      abuf = new long[size][width];
 
       System.arraycopy(charArray, oldBase + l, cbuf, 0, bottom - l - (n - 1));
       System.arraycopy(charAttributes, oldBase + l,
@@ -376,7 +400,7 @@ public class VDUBuffer implements Cloneable {
           }
 
           cbuf = new char[bufSize][width];
-          abuf = new short[bufSize][width];
+          abuf = new long[bufSize][width];
         } else {
           offset = n;
           cbuf = charArray;
@@ -438,7 +462,7 @@ public class VDUBuffer implements Cloneable {
 
     for (int i = 0; i < n; i++) {
       cbuf[(screenBase + l) + (scrollDown ? i : -i)] = new char[width];
-      abuf[(screenBase + l) + (scrollDown ? i : -i)] = new short[width];
+      abuf[(screenBase + l) + (scrollDown ? i : -i)] = new long[width];
     }
 
     charArray = cbuf;
@@ -463,7 +487,7 @@ public class VDUBuffer implements Cloneable {
     System.arraycopy(charAttributes, screenBase + l + 1,
                      charAttributes, screenBase + l, bottom - l - 1);
     charArray[screenBase + bottom - 1] = new char[width];
-    charAttributes[screenBase + bottom - 1] = new short[width];
+    charAttributes[screenBase + bottom - 1] = new long[width];
   }
 
   /**
@@ -478,13 +502,13 @@ public class VDUBuffer implements Cloneable {
    * @see #deleteLine
    * @see #redraw
    */
-  public void deleteArea(int c, int l, int w, int h, short curAttr) {
+  public void deleteArea(int c, int l, int w, int h, long curAttr) {
     strictClone();
     c = checkBounds(c, 0, width - 1);
     l = checkBounds(l, 0, height - 1);
 
     char cbuf[] = new char[w];
-    short abuf[] = new short[w];
+    long abuf[] = new long[w];
 
     for (int i = 0; i < w; i++) abuf[i] = curAttr;
     for (int i = 0; i < h && l + i < height; i++) {
@@ -510,7 +534,7 @@ public class VDUBuffer implements Cloneable {
     l = checkBounds(l, 0, height - 1);
 
     char cbuf[] = new char[w];
-    short abuf[] = new short[w];
+    long abuf[] = new long[w];
 
     for (int i = 0; i < h && l + i < height; i++) {
       System.arraycopy(cbuf, 0, charArray[screenBase + l + i], c, w);
@@ -588,7 +612,7 @@ public class VDUBuffer implements Cloneable {
     } else
       topMargin = l;
     if (topMargin < 0) topMargin = 0;
-    if (bottomMargin > height - 1) bottomMargin = height - 1;
+    if (bottomMargin >= height) bottomMargin = height - 1;
   }
 
   /**
@@ -612,7 +636,7 @@ public class VDUBuffer implements Cloneable {
     } else
       bottomMargin = l;
     if (topMargin < 0) topMargin = 0;
-    if (bottomMargin > height - 1) bottomMargin = height - 1;
+    if (bottomMargin >= height) bottomMargin = height - 1;
   }
 
   /**
@@ -631,7 +655,7 @@ public class VDUBuffer implements Cloneable {
     if (amount < height) amount = height;
     if (amount < maxBufSize) {
       char cbuf[][] = new char[amount][width];
-      short abuf[][] = new short[amount][width];
+      long abuf[][] = new long[amount][width];
       int copyStart = bufSize - amount < 0 ? 0 : bufSize - amount;
       int copyCount = bufSize - amount < 0 ? bufSize : amount;
       if (charArray != null)
@@ -676,7 +700,7 @@ public class VDUBuffer implements Cloneable {
    */
   public void setScreenSize(int w, int h) {
     char cbuf[][];
-    short abuf[][];
+    long abuf[][];
     int bsize = bufSize;
 
     if (w < 1 || h < 1) return;
@@ -701,7 +725,7 @@ public class VDUBuffer implements Cloneable {
 
 
     cbuf = new char[bufSize][w];
-    abuf = new short[bufSize][w];
+    abuf = new long[bufSize][w];
 
     if (charArray != null && charAttributes != null) {
       for (int i = 0; i < bsize && i < bufSize; i++) {
@@ -764,7 +788,7 @@ public class VDUBuffer implements Cloneable {
 
     private static Map<Integer,char[]> charArrayShared
             = new ConcurrentHashMap<>(100000,0.5f,1);
-    private static Map<Integer,short[]> charAttributesShared
+    private static Map<Integer,long[]> charAttributesShared
             = new ConcurrentHashMap<>(100000,0.5f,1);
 
     public static void resetCaches() {
@@ -804,7 +828,7 @@ public class VDUBuffer implements Cloneable {
                     /* We've seen the string before, so deduplicate it.
                      * Have we seen its colouring before? */
                     charArray[i] = x;
-                    short[] y = charAttributesShared.get(cah);
+                    long[] y = charAttributesShared.get(cah);
                     if (Arrays.equals(charAttributes[i],y)) {
                         /* Yes, deduplicate that too. */
                         charAttributes[i] = y;
