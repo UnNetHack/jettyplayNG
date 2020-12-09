@@ -666,6 +666,8 @@ public class VDURenderer {
                         fg = color[fgColor];
                     } else if (fgColor < 256) {
                         fg = xterm_256_colors[fgColor];
+                    } else {
+                        fg = new Color(0xff000000 | (fgColor - 256));
                     }
                 }
                 if ((currAttr & VDUBuffer.COLOR_BG) != 0) {
@@ -673,7 +675,9 @@ public class VDURenderer {
                     if (bgColor < 8) {
                         bg = darken(color[bgColor]);
                     } else if (bgColor < 256) {
-                        bg = darken(xterm_256_colors[bgColor]);
+                        bg = xterm_256_colors[bgColor];
+                    } else {
+                        bg = new Color(0xff000000 | (bgColor - 256));
                     }
                 }
                 if ((currAttr & VDUBuffer.BOLD) != 0) {
