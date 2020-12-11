@@ -8,6 +8,7 @@ repositories {
 
 dependencies {
     implementation "javax.activation:javax.activation-api:1.2.0"
+    implementation "com.sun.activation:jakarta.activation:1.2.1"
 }
 
 def main_class = 'jettyplay.MainFrame'
